@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32602.215
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OPCUaClient", "OPCUaClient\OPCUaClient.csproj", "{0F4FD153-4362-443C-A97B-F17EED146330}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{69934EBF-1DBC-4407-90CA-312DACD8942F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0F4FD153-4362-443C-A97B-F17EED146330}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F4FD153-4362-443C-A97B-F17EED146330}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F4FD153-4362-443C-A97B-F17EED146330}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F4FD153-4362-443C-A97B-F17EED146330}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69934EBF-1DBC-4407-90CA-312DACD8942F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69934EBF-1DBC-4407-90CA-312DACD8942F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69934EBF-1DBC-4407-90CA-312DACD8942F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69934EBF-1DBC-4407-90CA-312DACD8942F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2D1995D9-8AAE-436E-B2FE-C9BA0A6D24AB}
+	EndGlobalSection
+EndGlobal
