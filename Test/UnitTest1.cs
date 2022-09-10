@@ -16,7 +16,7 @@ namespace Test
         {
 
             UaClient client = new UaClient("testing", "opc.tcp://localhost:52240", true);
-            client.Connect(30 * 1000);
+            client.Connect(30);
             client.Disconnect();
             Assert.Pass();
         }
@@ -25,7 +25,7 @@ namespace Test
         public void Read()
         {
             UaClient client = new UaClient("testingRead", "opc.tcp://localhost:52240", true);
-            client.Connect(30 * 1000);
+            client.Connect(30);
             Tag tag = client.Read("NexusMeter.Tag");
             client.Disconnect();
             Assert.AreEqual(12337, tag.Value);
@@ -34,7 +34,17 @@ namespace Test
         [Test]
         public void ReadList()
         {
-
+            UaClient client = new UaClient("testingRead", "opc.tcp://localhost:52240", true);
+            client.Connect(30);
+            var address = new List<String>
+            {
+                "NexusMeter.Tag",
+                "NexusMeter.Tag1",
+                "NexusMeter.Tag2"
+            };
+            var tags = client.Read(address);
+            Assert.IsNotNull(tags);
+            client.Disconnect();
 
         }
     }

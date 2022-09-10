@@ -1,18 +1,40 @@
 ﻿using Opc.Ua;
 using Opc.Ua.Client;
 using OPCUaClient.Objects;
+using OPCUaClient.Exceptions;
 namespace OPCUaClient
 {
+    /// <summary>
+    /// Client for OPCUA Server
+    /// </summary>
     public class UaClient
     {
 
         private EndpointDescription EndpointDescription;
         private EndpointConfiguration EndpointConfig;
         private ConfiguredEndpoint Endpoint;
-        private Session Session;
+        private Session Session = null;
         private UserIdentity userIdentity;
         ApplicationConfiguration AppConfig;
 
+        /// <summary>
+        /// Create a new instance
+        /// </summary>
+        /// <param name="appName">
+        /// Name of the application
+        /// </param>
+        /// <param name="serverUrl">
+        /// Url of server
+        /// </param>
+        /// <param name="security">
+        /// Enable or disable the security
+        /// </param>
+        /// <param name="user">
+        /// User of the OPCUA Server
+        /// </param>
+        /// <param name="password">
+        /// Password of the user
+        /// </param>
         public UaClient(String appName, String serverUrl, bool security, String user = "", String password = "")
         {
             String path = Path.Combine(Directory.GetCurrentDirectory(), "Certificates");
@@ -83,19 +105,29 @@ namespace OPCUaClient
         
         }
 
+        /// <summary>
+        /// Open the connection with de OPCUA Server
+        /// </summary>
+        /// <param name="lifeTime">
+        /// Duration of the session in seconds
+        /// </param>
+        /// <exception cref="Exception"></exception>
 
         public void Connect(uint lifeTime)
         {
             this.Disconnect();
 
-            this.Session = Task.Run(async () => await Session.Create(AppConfig, Endpoint, false, false, AppConfig.ApplicationName, lifeTime, userIdentity, null)).GetAwaiter().GetResult();
+            this.Session = Task.Run(async () => await Session.Create(AppConfig, Endpoint, false, false, AppConfig.ApplicationName, lifeTime * 1000, userIdentity, null)).GetAwaiter().GetResult();
 
             if (this.Session == null || !this.Session.Connected)
             {
-                throw new Exception();
+                throw new ServerException("Error creating a session on the server");
             }
         }
 
+        /// <summary>
+        /// Close the connection with OPCUA Server
+        /// </summary>
         public void Disconnect()
         {
             if (this.Session != null && this.Session.Connected)
@@ -106,6 +138,17 @@ namespace OPCUaClient
             }
         }
 
+
+        /// <summary>
+        /// Write a value on a tag
+        /// </summary>
+        /// <param name="address">
+        /// Address of the tag
+        /// </param>
+        /// <param name="value">
+        /// Value to write
+        /// </param>
+        /// <exception cref="Exception"></exception>
         public void Write(String address, Object value)
         {
             
@@ -118,13 +161,31 @@ namespace OPCUaClient
             };
             writeValue.Value.Value = value;
             this.Session.Write(null, writeValues, out StatusCodeCollection statusCodes, out DiagnosticInfoCollection diagnosticInfo);
+            if (!StatusCode.IsGood(statusCodes[0]))
+            {
+                throw new WriteException("Error writing value. Code: " + statusCodes[0].Code.ToString());
+            }
         }
 
+        /// <summary>
+        /// Write a value on a tag
+        /// </summary>
+        /// <param name="tag"> <see cref="Tag"/></param>
         public void Write(Tag tag)
         {
             this.Write(tag.Address, tag.Value);
         }
 
+        /// <summary>
+        /// Read a tag of the sepecific address
+        /// </summary>
+        /// <param name="address">
+        /// Address of the tag
+        /// </param>
+        /// <returns>
+        /// <see cref="Tag"/>
+        /// </returns>
+        /// <exception cref="ReadException"></exception>
         public Tag Read(String address)
         {
             var tag = new Tag
@@ -146,12 +207,18 @@ namespace OPCUaClient
 
             if (!StatusCode.IsGood(dataValues[0].StatusCode))
             {
-                throw new Exception();
+                throw new ReadException("Error reading value. Code: " + dataValues[0].StatusCode.Code.ToString());
             }
             tag.Value = dataValues[0].Value;
             return tag;
         }
 
+
+        /// <summary>
+        /// Write a lis of values
+        /// </summary>
+        /// <param name="tags"> <see cref="tag"/></param>
+        /// <exception cref="WriteException"></exception>
         public void Write(List<Tag> tags)
         {
             WriteValueCollection writeValues = new WriteValueCollection();
@@ -165,26 +232,50 @@ namespace OPCUaClient
                     Value = tag.Value
                 }
             });
+
             this.Session.Write(null, writeValues, out StatusCodeCollection statusCodes, out DiagnosticInfoCollection diagnosticInfo);
+
+            if (statusCodes.Where(sc => !StatusCode.IsGood(sc)).Any())
+            {
+                var status = statusCodes.Where(sc => !StatusCode.IsGood(sc)).First();
+                throw new WriteException("Error writing value. Code: " + status.Code.ToString());
+            }
         }
 
+
+        /// <summary>
+        /// Read a list of tags on the OPCUA Server
+        /// </summary>
+        /// <param name="address">
+        /// List of address to read.
+        /// </param>
+        /// <returns>
+        /// A list of tags <see cref="Tag"/>
+        /// </returns>
         public List<Tag> Read(List<String> address)
         {
             var tags = new List<Tag>();
+            int i = 0;
+            
             ReadValueIdCollection readValues = new ReadValueIdCollection();
             readValues.AddRange(address.Select(a => new ReadValueId
             {
                 NodeId = new NodeId(a, 2),
                 AttributeId = Attributes.Value
             }));
-
+            
             this.Session.Read(null, 0, TimestampsToReturn.Both, readValues, out DataValueCollection dataValues, out DiagnosticInfoCollection diagnosticInfo);
 
-            tags.AddRange(dataValues.Select(d => new Tag
+            address.ForEach(a =>
             {
-                Value = d.Value,
-                Address = d.ToString()
-            }));
+                tags.Add(new Tag
+                {
+                    Address = a,
+                    Value = dataValues[i].Value,
+                    Quality = StatusCode.IsGood(dataValues[i].StatusCode)
+                });
+                i++;
+            });
 
             return tags;
         }

@@ -12,7 +12,7 @@ namespace OPCUaClient.Objects
         {
             get
             {
-                return this.Address.Substring(this.Address.LastIndexOf("."));
+                return this.Address.Substring(this.Address.LastIndexOf(".") + 1);
             }
         }
         public String Address { get; set; }
