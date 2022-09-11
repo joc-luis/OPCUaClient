@@ -8,7 +8,7 @@ namespace OPCUaClient.Objects
 {
 
     /// <summary>
-    /// Represent on class of the tag in OPCUA Server
+    /// Representation in class of a the tag of OPC UA Server
     /// </summary>
     public class Tag
     {

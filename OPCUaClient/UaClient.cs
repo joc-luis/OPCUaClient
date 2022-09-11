@@ -29,15 +29,23 @@ namespace OPCUaClient
         /// <param name="security">
         /// Enable or disable the security
         /// </param>
+        /// <param name="untrusted">
+        /// Accept untrusted certificates
+        /// </param>
         /// <param name="user">
         /// User of the OPCUA Server
         /// </param>
         /// <param name="password">
         /// Password of the user
         /// </param>
-        public UaClient(String appName, String serverUrl, bool security, String user = "", String password = "")
+        public UaClient(String appName, String serverUrl, bool security, bool untrusted, String user = "", String password = "")
         {
             String path = Path.Combine(Directory.GetCurrentDirectory(), "Certificates");
+            Directory.CreateDirectory(path);
+            Directory.CreateDirectory(Path.Combine(path, "Application"));
+            Directory.CreateDirectory(Path.Combine(path, "Trusted"));
+            Directory.CreateDirectory(Path.Combine(path, "TrustedPeer"));
+            Directory.CreateDirectory(Path.Combine(path, "Rejected"));
             String hostName = System.Net.Dns.GetHostName();
      
             if (user.Length > 0)
@@ -95,7 +103,7 @@ namespace OPCUaClient
             {
                 AppConfig.CertificateValidator.CertificateValidation += (s, ee) =>
                 {
-                    ee.Accept = (ee.Error.StatusCode == StatusCodes.BadCertificateUntrusted);
+                    ee.Accept = (ee.Error.StatusCode == StatusCodes.BadCertificateUntrusted && untrusted);
                 };
             }
 
@@ -111,7 +119,7 @@ namespace OPCUaClient
         /// <param name="lifeTime">
         /// Duration of the session in seconds
         /// </param>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="ServerException"></exception>
 
         public void Connect(uint lifeTime)
         {
@@ -148,7 +156,7 @@ namespace OPCUaClient
         /// <param name="value">
         /// Value to write
         /// </param>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="WriteException"></exception>
         public void Write(String address, Object value)
         {
             
@@ -205,11 +213,9 @@ namespace OPCUaClient
 
             this.Session.Read(null, 0, TimestampsToReturn.Both, readValues, out DataValueCollection dataValues, out DiagnosticInfoCollection diagnosticInfo);
 
-            if (!StatusCode.IsGood(dataValues[0].StatusCode))
-            {
-                throw new ReadException("Error reading value. Code: " + dataValues[0].StatusCode.Code.ToString());
-            }
+           
             tag.Value = dataValues[0].Value;
+            tag.Quality = StatusCode.IsGood(dataValues[0].StatusCode);
             return tag;
         }
 
