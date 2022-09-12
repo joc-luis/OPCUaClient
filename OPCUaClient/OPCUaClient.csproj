@@ -11,11 +11,19 @@
     <RepositoryUrl>https://github.com/joc-luis/OPCUaClient</RepositoryUrl>
     <PackageTags>OPCUa Client </PackageTags>
     <RepositoryType>GIT</RepositoryType>
-    <PackageReleaseNotes>Initial release</PackageReleaseNotes>
-    <PackageLicenseFile>E:\Proyectos\OPCUaClient\LICENSE.md</PackageLicenseFile>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageReleaseNotes>Error when writing in the tags fixed. 
+Added tag monitoring function.</PackageReleaseNotes>
     <Copyright>Joc-Luis</Copyright>
+    <ApplicationIcon>connection.ico</ApplicationIcon>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Company>$(Authors)</Company>
+    <Version>1.1.0</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="connection.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\README.MD">

@@ -2,6 +2,8 @@
 using Opc.Ua.Client;
 using OPCUaClient.Objects;
 using OPCUaClient.Exceptions;
+using Opc.Ua.Configuration;
+
 namespace OPCUaClient
 {
     /// <summary>
@@ -15,7 +17,7 @@ namespace OPCUaClient
         private ConfiguredEndpoint Endpoint;
         private Session Session = null;
         private UserIdentity userIdentity;
-        ApplicationConfiguration AppConfig;
+        private ApplicationConfiguration AppConfig;
 
         /// <summary>
         /// Create a new instance
@@ -107,6 +109,15 @@ namespace OPCUaClient
                 };
             }
 
+            var application = new ApplicationInstance
+            {
+                ApplicationName = appName,
+                ApplicationType = ApplicationType.Client,
+                ApplicationConfiguration = AppConfig
+            };
+            Utils.SetTraceMask(0);
+            application.CheckApplicationInstanceCertificate(true, 2048).GetAwaiter().GetResult();
+
             EndpointDescription = CoreClientUtils.SelectEndpoint(AppConfig, serverUrl, security);
             EndpointConfig = EndpointConfiguration.Create(AppConfig);
             Endpoint = new ConfiguredEndpoint(null, EndpointDescription, EndpointConfig);
@@ -114,7 +125,7 @@ namespace OPCUaClient
         }
 
         /// <summary>
-        /// Open the connection with de OPCUA Server
+        /// Open the connection with the OPCUA Server
         /// </summary>
         /// <param name="lifeTime">
         /// Duration of the session in seconds
@@ -134,7 +145,7 @@ namespace OPCUaClient
         }
 
         /// <summary>
-        /// Close the connection with OPCUA Server
+        /// Close the connection with the OPCUA Server
         /// </summary>
         public void Disconnect()
         {
@@ -168,6 +179,7 @@ namespace OPCUaClient
                 Value = new DataValue()
             };
             writeValue.Value.Value = value;
+            writeValues.Add(writeValue);
             this.Session.Write(null, writeValues, out StatusCodeCollection statusCodes, out DiagnosticInfoCollection diagnosticInfo);
             if (!StatusCode.IsGood(statusCodes[0]))
             {
@@ -223,13 +235,13 @@ namespace OPCUaClient
         /// <summary>
         /// Write a lis of values
         /// </summary>
-        /// <param name="tags"> <see cref="tag"/></param>
+        /// <param name="tags"> <see cref="Tag"/></param>
         /// <exception cref="WriteException"></exception>
         public void Write(List<Tag> tags)
         {
             WriteValueCollection writeValues = new WriteValueCollection();
 
-            tags.Select(tag => new WriteValue
+            writeValues.AddRange(tags.Select(tag => new WriteValue
             {
                 NodeId = new NodeId(tag.Address, 2),
                 AttributeId = Attributes.Value,
@@ -237,8 +249,8 @@ namespace OPCUaClient
                 {
                     Value = tag.Value
                 }
-            });
-
+            }));
+            
             this.Session.Write(null, writeValues, out StatusCodeCollection statusCodes, out DiagnosticInfoCollection diagnosticInfo);
 
             if (statusCodes.Where(sc => !StatusCode.IsGood(sc)).Any())
@@ -284,6 +296,50 @@ namespace OPCUaClient
             });
 
             return tags;
+        }
+
+
+        private Subscription Subscription(int miliseconds)
+        {
+
+            var subscription = new Subscription()
+            {
+                PublishingEnabled = true,
+                PublishingInterval = miliseconds,
+                Priority = 1,
+                KeepAliveCount = 10,
+                LifetimeCount = 20,
+                MaxNotificationsPerPublish = 1000
+            };
+
+            return subscription;
+            
+        }
+
+
+        /// <summary>
+        /// Monitoring a tag and execute a function when the value change
+        /// </summary>
+        /// <param name="address">
+        /// Address of the tag
+        /// </param>
+        /// <param name="miliseconds">
+        /// Sets the time to check changes in the tag
+        /// </param>
+        /// <param name="monitor">
+        /// Function to execute when the value changes.
+        /// </param>
+        public void Monitoring(String address, int miliseconds, MonitoredItemNotificationEventHandler monitor)
+        {
+            var subscription = this.Subscription(miliseconds);
+            MonitoredItem monitored = new MonitoredItem();
+            monitored.StartNodeId = new NodeId(address, 2);
+            monitored.AttributeId = Attributes.Value;
+            monitored.Notification += monitor;
+            subscription.AddItem(monitored);
+            this.Session.AddSubscription(subscription);
+            subscription.Create();
+            subscription.ApplyChanges();
         }
     }
 }

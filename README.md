@@ -3,6 +3,13 @@ Client for OPC UA Server
 
 
 ## How to use
+
+### Import
+
+```cs
+ using OPCUaClient;
+```
+
 ### Make a instance
 
 ```cs
@@ -85,6 +92,20 @@ var tags = new List<Tag>
   },
 }
  client.Write(tags);
+```
+
+### Monitoring a tag
+
+```cs
+
+ client.Monitoring("Device.Counter.OK", 500, (_, e) => {
+   // Anything you need to be executed when the value changes
+ 
+   // Get the value of the tag being monitored
+    var monitored = (MonitoredItemNotification)e.NotificationValue;
+    Console.WriteLine(monitored.Value);
+
+});
 ```
 
 ### License

@@ -37,23 +37,26 @@ namespace Test
             UaClient client = new UaClient("testingReadList", "opc.tcp://localhost:52240", true, true);
             client.Connect(30);
             var address = new List<String>();
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 10; i++)
             {
                 if (i <= 9)
                 {
-                    address.Add($"Tag00{i}");
+                    address.Add($"NexusMeter.Tag00{i}");
                 }
                 else if(i <= 99)
                 {
-                    address.Add($"Tag0{i}");
+                    address.Add($"NexusMeter.Tag0{i}");
                 }
                 else
                 {
-                    address.Add($"Tag{i}");
+                    address.Add($"NexusMeter.Tag{i}");
                 }
             }
             var tags = client.Read(address);
-            Assert.AreEqual(1000, tags.Count);
+            
+
+            Assert.AreEqual(10, tags.Count);
+            
             client.Disconnect();
 
         }
