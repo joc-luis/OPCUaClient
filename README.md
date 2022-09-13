@@ -8,7 +8,10 @@ Client for OPC UA Server
 The certificates are in the same folder the application executable.
 
 ## How to use
-
+### Install
+```
+dotnet add package OPCUaClient
+```
 ### Import
 
 ```cs
