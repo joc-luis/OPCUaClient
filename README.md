@@ -1,6 +1,11 @@
 # OPCUaClient
 Client for OPC UA Server
 
+## Build with
+[OPC UA Foundation](https://github.com/OPCFoundation/UA-.NETStandard) library
+
+## Certificates
+The certificates are in the same folder the application executable.
 
 ## How to use
 
@@ -10,10 +15,14 @@ Client for OPC UA Server
  using OPCUaClient;
 ```
 
-### Make a instance
+
+
+### Create a instance
 
 ```cs
  UaClient client = new UaClient("test", "opc.tcp://localhost:52240", true, true);
+ 
+ UaClient auth = new UaClient("test", "opc.tcp://localhost:52240", true, true, "admin", "admin");
 ```
 ### Create a session on the server
 
@@ -104,6 +113,55 @@ var tags = new List<Tag>
    // Get the value of the tag being monitored
     var monitored = (MonitoredItemNotification)e.NotificationValue;
     Console.WriteLine(monitored.Value);
+
+});
+```
+
+### Scan OPC UA Server
+
+```cs
+
+ var devices = client.Devices(true);
+ 
+ foreach(var device in devices)
+ {
+    Console.WriteLine($"Name: {device.Name}");
+    Console.WriteLine($"Address: {device.Address}");
+    Console.WriteLine($"Groups: {device.Groups.Count()}");
+    Console.WriteLine($"Tags: {device.Tags.Count()}");
+ }
+
+});
+```
+
+### Scan group
+
+```cs
+
+ var groups = client.Group("Device", true);
+ 
+ foreach(var group in groups)
+ {
+    Console.WriteLine($"Name: {group.Name}");
+    Console.WriteLine($"Address: {group.Address}");
+    Console.WriteLine($"Groups: {group.Groups.Count()}");
+    Console.WriteLine($"Tags: {group.Tags.Count()}");
+ }
+
+});
+```
+
+### Scan an address and recovery the tags
+
+```cs
+
+ var tags = client.Group("Device.Counter");
+ 
+ foreach(var tag in tags)
+ {
+    Console.WriteLine($"Name: {tag.Name}");
+    Console.WriteLine($"Address: {tag.Address}");
+ }
 
 });
 ```
