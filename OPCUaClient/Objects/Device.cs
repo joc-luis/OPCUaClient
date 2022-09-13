@@ -8,33 +8,33 @@ namespace OPCUaClient.Objects
 {
 
     /// <summary>
-    /// Group of tags.
+    /// Device on the OPC UA Server
     /// </summary>
-    public class Group
+    public class Device
     {
 
         /// <summary>
-        /// Name of the group
+        /// Name of the device
         /// </summary>
-        public String Name
-        {
+        public String Name { 
             get
             {
                 return this.Address.Substring(this.Address.LastIndexOf(".") + 1);
             }
         }
-
         /// <summary>
-        /// Address of the group
+        /// Address of the device
         /// </summary>
         public String Address { get; set; }
+
         /// <summary>
-        /// Groups into the group
+        /// Groups into the device
         /// </summary>
-        public List<Group> Groups { get; set; }
+        public List<Group> Groups { get; set; } = new List<Group>();
+
         /// <summary>
-        /// Tags into the group
+        /// Tags into the device
         /// </summary>
-        public List<Tag> Tags { get; set; }
+        public List<Tag> Tags { get; set; } = new List<Tag>();
     }
 }

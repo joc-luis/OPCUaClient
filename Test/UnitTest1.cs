@@ -60,5 +60,15 @@ namespace Test
             client.Disconnect();
 
         }
+
+        [Test]
+        public void Devices()
+        {
+            UaClient client = new UaClient("testingReadList", "opc.tcp://localhost:52240", true, true);
+            client.Connect(500);
+            var devices = client.Devices(true);
+            client.Disconnect();
+            Assert.IsNotNull(devices);
+        }
     }
 }
