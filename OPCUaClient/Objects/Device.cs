@@ -28,12 +28,12 @@ namespace OPCUaClient.Objects
         public String Address { get; set; }
 
         /// <summary>
-        /// Groups into the device
+        /// Groups into the device <see cref="Group"/>
         /// </summary>
         public List<Group> Groups { get; set; } = new List<Group>();
 
         /// <summary>
-        /// Tags into the device
+        /// Tags into the device <see cref="Tag"/>
         /// </summary>
         public List<Tag> Tags { get; set; } = new List<Tag>();
     }

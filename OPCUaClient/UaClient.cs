@@ -12,14 +12,96 @@ namespace OPCUaClient
     /// </summary>
     public class UaClient
     {
-
+        #region Private Fields
         private EndpointDescription EndpointDescription;
         private EndpointConfiguration EndpointConfig;
         private ConfiguredEndpoint Endpoint;
         private Session Session = null;
-        private UserIdentity userIdentity;
+        private UserIdentity UserIdentity;
         private ApplicationConfiguration AppConfig;
+        private int ReconnectPeriod = 10000;
+        private object Lock = new object();
+        private SessionReconnectHandler ReconnectHandler;
+        #endregion
 
+        #region Private methods
+        private void KeepAlive(Session session, KeepAliveEventArgs e)
+        {
+            try
+            {
+                if (ServiceResult.IsBad(e.Status))
+                {
+                    lock (this.Lock)
+                    {
+                        if (this.ReconnectHandler == null)
+                        {
+                            this.ReconnectHandler = new SessionReconnectHandler(true);
+                            this.ReconnectHandler.BeginReconnect(this.Session, this.ReconnectPeriod, this.Reconnect);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+
+            }
+        }
+
+        private void Reconnect(object sender, EventArgs e)
+        {
+            if (!Object.ReferenceEquals(sender, this.ReconnectHandler))
+            {
+                return;
+            }
+
+            lock (this.Lock)
+            {
+                if (this.ReconnectHandler.Session != null)
+                {
+                    this.Session = this.ReconnectHandler.Session;
+                }
+                this.ReconnectHandler.Dispose();
+                this.ReconnectHandler = null;
+            }
+        }
+
+        private Subscription Subscription(int miliseconds)
+        {
+
+            var subscription = new Subscription()
+            {
+                PublishingEnabled = true,
+                PublishingInterval = miliseconds,
+                Priority = 1,
+                KeepAliveCount = 10,
+                LifetimeCount = 20,
+                MaxNotificationsPerPublish = 1000
+            };
+
+            return subscription;
+
+        }
+        #endregion
+
+        #region Public fields
+        /// <summary>
+        /// Indicates if the instance is connected to the server.
+        /// </summary>
+        public bool IsConnected
+        {
+            get
+            {
+                if (this.Session == null)
+                {
+                    return false;
+                }
+                return this.Session.Connected;
+            }
+        }
+        #endregion
+
+        #region Public methods
         /// <summary>
         /// Create a new instance
         /// </summary>
@@ -36,7 +118,7 @@ namespace OPCUaClient
         /// Accept untrusted certificates
         /// </param>
         /// <param name="user">
-        /// User of the OPCUA Server
+        /// User of the OPC UA Server
         /// </param>
         /// <param name="password">
         /// Password of the user
@@ -53,11 +135,11 @@ namespace OPCUaClient
      
             if (user.Length > 0)
             {
-                userIdentity = new UserIdentity(user, password);
+                UserIdentity = new UserIdentity(user, password);
             }
             else
             {
-                userIdentity = new UserIdentity();
+                UserIdentity = new UserIdentity();
             }
             AppConfig = new ApplicationConfiguration
             {
@@ -126,18 +208,26 @@ namespace OPCUaClient
         }
 
         /// <summary>
-        /// Open the connection with the OPCUA Server
+        /// Open the connection with the OPC UA Server
         /// </summary>
-        /// <param name="lifeTime">
-        /// Duration of the session in seconds
+        /// <param name="timeOut">
+        /// Timeout to try to connect with the server in seconds.
+        /// </param>
+        /// <param name="keepAlive">
+        /// Sets whether to try to connect to the server in case the connection is lost.
         /// </param>
         /// <exception cref="ServerException"></exception>
 
-        public void Connect(uint lifeTime)
+        public void Connect(uint timeOut = 5, bool keepAlive = false)
         {
             this.Disconnect();
 
-            this.Session = Task.Run(async () => await Session.Create(AppConfig, Endpoint, false, false, AppConfig.ApplicationName, lifeTime * 1000, userIdentity, null)).GetAwaiter().GetResult();
+            this.Session = Task.Run(async () => await Session.Create(AppConfig, Endpoint, false, false, AppConfig.ApplicationName, timeOut * 1000, UserIdentity, null)).GetAwaiter().GetResult();
+            
+            if (keepAlive)
+            {
+                this.Session.KeepAlive += this.KeepAlive;
+            }
 
             if (this.Session == null || !this.Session.Connected)
             {
@@ -146,12 +236,20 @@ namespace OPCUaClient
         }
 
         /// <summary>
-        /// Close the connection with the OPCUA Server
+        /// Close the connection with the OPC UA Server
         /// </summary>
         public void Disconnect()
         {
             if (this.Session != null && this.Session.Connected)
             {
+
+                if (this.Session.Subscriptions != null && this.Session.Subscriptions.Any())
+                {
+                    foreach (var subscription in this.Session.Subscriptions)
+                    {
+                        subscription.Delete(true);
+                    }
+                }
                 this.Session.Close();
                 this.Session.Dispose();
                 this.Session = null;
@@ -206,7 +304,6 @@ namespace OPCUaClient
         /// <returns>
         /// <see cref="Tag"/>
         /// </returns>
-        /// <exception cref="ReadException"></exception>
         public Tag Read(String address)
         {
             var tag = new Tag
@@ -300,22 +397,6 @@ namespace OPCUaClient
         }
 
 
-        private Subscription Subscription(int miliseconds)
-        {
-
-            var subscription = new Subscription()
-            {
-                PublishingEnabled = true,
-                PublishingInterval = miliseconds,
-                Priority = 1,
-                KeepAliveCount = 10,
-                LifetimeCount = 20,
-                MaxNotificationsPerPublish = 1000
-            };
-
-            return subscription;
-            
-        }
 
 
         /// <summary>
@@ -451,5 +532,6 @@ namespace OPCUaClient
 
             return tags;
         }
+        #endregion
     }
 }

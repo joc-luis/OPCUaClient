@@ -28,13 +28,15 @@ namespace OPCUaClient.Objects
         /// Address of the group
         /// </summary>
         public String Address { get; set; }
+
         /// <summary>
-        /// Groups into the group
+        /// Groups into the group <see cref="Group"/>
         /// </summary>
-        public List<Group> Groups { get; set; }
+        public List<Group> Groups { get; set; } = new List<Group>();
+
         /// <summary>
-        /// Tags into the group
+        /// Tags into the group <see cref="Tag"/>
         /// </summary>
-        public List<Tag> Tags { get; set; }
+        public List<Tag> Tags { get; set; } = new List<Tag>();
     }
 }

@@ -9,16 +9,17 @@
     <PackageReadmeFile>README.MD</PackageReadmeFile>
     <PackageIcon>connection.png</PackageIcon>
     <RepositoryUrl>https://github.com/joc-luis/OPCUaClient</RepositoryUrl>
-    <PackageTags>OPCUa Client </PackageTags>
+    <PackageTags>OPCUa Client OPC Ua</PackageTags>
     <RepositoryType>GIT</RepositoryType>
-    <PackageReleaseNotes>Error when writing in the tags fixed. 
-Added tag monitoring function.</PackageReleaseNotes>
+    <PackageReleaseNotes>Add scan server options.
+Add reconnect event.
+Add bugs to fix later.</PackageReleaseNotes>
     <Copyright>Joc-Luis</Copyright>
     <ApplicationIcon>connection.ico</ApplicationIcon>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Company>$(Authors)</Company>
-    <Version>1.4.0</Version>
+    <Version>1.6.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

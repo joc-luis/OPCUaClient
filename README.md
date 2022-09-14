@@ -25,13 +25,13 @@ dotnet add package OPCUaClient
 ```cs
  UaClient client = new UaClient("test", "opc.tcp://localhost:52240", true, true);
  
- UaClient auth = new UaClient("test", "opc.tcp://localhost:52240", true, true, "admin", "admin");
+ UaClient auth = new UaClient("test", "opc.tcp://localhost:52240", true, true, "admin", "password");
 ```
 ### Create a session on the server
 
 ```cs
  int seconds = 30;
- client.Connect(seconds);
+ client.Connect(seconds, true);
 ```
 
 
@@ -76,7 +76,6 @@ var address = new List<String>
 ### Write a tag
 
 ```cs
-
  client.Write("Device.Counter.Model", "NewModel");
 ```
 
@@ -109,21 +108,17 @@ var tags = new List<Tag>
 ### Monitoring a tag
 
 ```cs
-
  client.Monitoring("Device.Counter.OK", 500, (_, e) => {
    // Anything you need to be executed when the value changes
  
    // Get the value of the tag being monitored
     var monitored = (MonitoredItemNotification)e.NotificationValue;
     Console.WriteLine(monitored.Value);
-
-});
 ```
 
 ### Scan OPC UA Server
 
 ```cs
-
  var devices = client.Devices(true);
  
  foreach(var device in devices)
@@ -133,14 +128,11 @@ var tags = new List<Tag>
     Console.WriteLine($"Groups: {device.Groups.Count()}");
     Console.WriteLine($"Tags: {device.Tags.Count()}");
  }
-
-});
 ```
 
 ### Scan group
 
 ```cs
-
  var groups = client.Group("Device", true);
  
  foreach(var group in groups)
@@ -150,14 +142,11 @@ var tags = new List<Tag>
     Console.WriteLine($"Groups: {group.Groups.Count()}");
     Console.WriteLine($"Tags: {group.Tags.Count()}");
  }
-
-});
 ```
 
 ### Scan an address and recovery the tags
 
 ```cs
-
  var tags = client.Group("Device.Counter");
  
  foreach(var tag in tags)
@@ -165,8 +154,6 @@ var tags = new List<Tag>
     Console.WriteLine($"Name: {tag.Name}");
     Console.WriteLine($"Address: {tag.Address}");
  }
-
-});
 ```
 
 ### License
