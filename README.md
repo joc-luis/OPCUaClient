@@ -148,7 +148,7 @@ var tags = new List<Tag>
 ### Scan an address and recovery the tags
 
 ```cs
- var tags = client.Group("Device.Counter");
+ var tags = client.Tags("Device.Counter");
  
  foreach(var tag in tags)
  {
