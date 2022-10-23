@@ -30,8 +30,8 @@ dotnet add package OPCUaClient
 ### Create a session on the server
 
 ```cs
- int seconds = 30;
- client.Connect(seconds, true);
+ int timeOut = 30;
+ client.Connect(timeOut, true);
 ```
 
 
@@ -114,6 +114,7 @@ var tags = new List<Tag>
    // Get the value of the tag being monitored
     var monitored = (MonitoredItemNotification)e.NotificationValue;
     Console.WriteLine(monitored.Value);
+ });
 ```
 
 ### Scan OPC UA Server
@@ -147,7 +148,7 @@ var tags = new List<Tag>
 ### Scan an address and recovery the tags
 
 ```cs
- var tags = client.Group("Device.Counter");
+ var tags = client.Tags("Device.Counter");
  
  foreach(var tag in tags)
  {
