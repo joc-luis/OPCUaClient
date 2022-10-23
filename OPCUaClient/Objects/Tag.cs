@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Opc.Ua;
+
 namespace OPCUaClient.Objects
 {
 
@@ -35,8 +37,18 @@ namespace OPCUaClient.Objects
 
 
         /// <summary>
+        /// Status code of the tag
+        /// </summary>
+        public StatusCode Code { get; set; }
+
+        /// <summary>
         /// Quality of the tag
         /// </summary>
-        public Boolean Quality { get; set; }
+        public Boolean Quality { 
+            get 
+            {
+                return StatusCode.IsGood(this.Code);
+            } 
+        }
     }
 }

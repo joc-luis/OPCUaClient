@@ -286,6 +286,8 @@ namespace OPCUaClient
             }
         }
 
+     
+
         /// <summary>
         /// Write a value on a tag
         /// </summary>
@@ -295,6 +297,7 @@ namespace OPCUaClient
             this.Write(tag.Address, tag.Value);
         }
 
+    
         /// <summary>
         /// Read a tag of the sepecific address
         /// </summary>
@@ -310,7 +313,6 @@ namespace OPCUaClient
             {
                 Address = address,
                 Value = null,
-                Quality = true
             };
             ReadValueIdCollection readValues = new ReadValueIdCollection()
             {
@@ -325,10 +327,11 @@ namespace OPCUaClient
 
            
             tag.Value = dataValues[0].Value;
-            tag.Quality = StatusCode.IsGood(dataValues[0].StatusCode);
+            tag.Code = dataValues[0].StatusCode;
             return tag;
         }
 
+   
 
         /// <summary>
         /// Write a lis of values
@@ -338,6 +341,8 @@ namespace OPCUaClient
         public void Write(List<Tag> tags)
         {
             WriteValueCollection writeValues = new WriteValueCollection();
+
+            
 
             writeValues.AddRange(tags.Select(tag => new WriteValue
             {
@@ -358,6 +363,7 @@ namespace OPCUaClient
             }
         }
 
+    
 
         /// <summary>
         /// Read a list of tags on the OPCUA Server
@@ -388,16 +394,13 @@ namespace OPCUaClient
                 {
                     Address = a,
                     Value = dataValues[i].Value,
-                    Quality = StatusCode.IsGood(dataValues[i].StatusCode)
+                    Code = dataValues[i].StatusCode
                 });
                 i++;
             });
 
             return tags;
         }
-
-
-
 
         /// <summary>
         /// Monitoring a tag and execute a function when the value change
@@ -470,7 +473,7 @@ namespace OPCUaClient
         /// <returns>
         /// List of <see cref="Group"/>
         /// </returns>
-        public List<Group> Groups(String address, bool recursive)
+        public List<Group> Groups(String address, bool recursive = false)
         {
             var groups = new List<Group>();
             Browser browser = new Browser(this.Session);
@@ -532,6 +535,90 @@ namespace OPCUaClient
 
             return tags;
         }
+        
+        
+
+
+
+        #region Async methods
+        
+        
+
+
+        /// <summary>
+        /// Read a tag of the sepecific address
+        /// </summary>
+        /// <param name="address">
+        /// Address of the tag
+        /// </param>
+        /// <returns>
+        /// <see cref="Tag"/>
+        /// </returns>
+        public async Task<Tag> ReadAsync(String address)
+        {
+            var tag = new Tag
+            {
+                Address = address,
+                Value = null,
+            };
+            ReadValueIdCollection readValues = new ReadValueIdCollection()
+            {
+                new ReadValueId
+                {
+                    NodeId = new NodeId(address, 2),
+                    AttributeId = Attributes.Value
+                }
+            };
+
+            var dataValues = await this.Session.ReadAsync(null, 0, TimestampsToReturn.Both, readValues, new CancellationToken());
+
+            tag.Value = dataValues.Results[0].Value;
+            tag.Code = dataValues.Results[0].StatusCode;
+
+            return tag;
+        }
+
+        /// <summary>
+        /// Read a list of tags on the OPCUA Server
+        /// </summary>
+        /// <param name="address">
+        /// List of address to read.
+        /// </param>
+        /// <returns>
+        /// A list of tags <see cref="Tag"/>
+        /// </returns>
+        public async Task<List<Tag>> ReadAsync(List<String> address)
+        {
+            var tags = new List<Tag>();
+            int i = 0;
+
+            ReadValueIdCollection readValues = new ReadValueIdCollection();
+            readValues.AddRange(address.Select(a => new ReadValueId
+            {
+                NodeId = new NodeId(a, 2),
+                AttributeId = Attributes.Value
+            }));
+
+            var dataValues = await this.Session.ReadAsync(null, 0, TimestampsToReturn.Both, readValues, new CancellationToken());
+
+            address.ForEach(a =>
+            {
+                tags.Add(new Tag
+                {
+                    Address = a,
+                    Value = dataValues.Results[i].Value,
+                    Code = dataValues.Results[i].StatusCode
+                });
+                i++;
+            });
+
+            return tags;
+        }
+
+
+        #endregion
+
+
         #endregion
     }
 }
