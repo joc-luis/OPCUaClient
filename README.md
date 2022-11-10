@@ -46,10 +46,13 @@ dotnet add package OPCUaClient
 
 ```cs
  Tag tag = client.Read("Device.Counter.OK");
+ //Or
+ tag = await client.Read("Device.Counter.OK");
  Console.WriteLine($"Name: {tag.Name}");
  Console.WriteLine($"Address: {tag.Address}");
  Console.WriteLine($"Value: {tag.Value}");
  Console.WriteLine($"Quality: {tag.Quality}");
+ Console.WriteLine($"Quality: {tag.Code}");
 ```
 
 ### Read multiple tags
@@ -63,13 +66,15 @@ var address = new List<String>
   "Device.Counter.CycleTime"
 }
  var tags = client.Read(address);
- 
+ //Or
+ tags await = client.ReadAsync(address);
  foreach(var tag in tags)
  {
     Console.WriteLine($"Name: {tag.Name}");
     Console.WriteLine($"Address: {tag.Address}");
     Console.WriteLine($"Value: {tag.Value}");
     Console.WriteLine($"Quality: {tag.Quality}");
+    Console.WriteLine($"Quality: {tag.Code}");
  }
 ```
 
@@ -77,6 +82,8 @@ var address = new List<String>
 
 ```cs
  client.Write("Device.Counter.Model", "NewModel");
+ //Or
+ await client.WriteAsync("Device.Counter.Model", "NewModel");
 ```
 
 
@@ -102,7 +109,9 @@ var tags = new List<Tag>
     Value = 10,
   },
 }
- client.Write(tags);
+client.Write(tags);
+//Or
+ await client.WriteAsync(tags);
 ```
 
 ### Monitoring a tag
