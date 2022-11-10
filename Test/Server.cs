@@ -22,6 +22,7 @@ namespace Test
             var devices = client.Devices(true);
             Assert.AreEqual(2, devices.Count);
             Assert.AreEqual(2, devices[0].Groups.Count);
+            Assert.AreEqual("NexusMeter", devices[0].Name);
             Assert.AreEqual(1022, devices[0].Tags.Count);
         }
 

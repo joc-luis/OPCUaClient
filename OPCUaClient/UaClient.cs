@@ -292,6 +292,7 @@ namespace OPCUaClient
         /// Write a value on a tag
         /// </summary>
         /// <param name="tag"> <see cref="Tag"/></param>
+        /// <exception cref="WriteException"></exception>
         public void Write(Tag tag)
         {
             this.Write(tag.Address, tag.Value);
@@ -542,6 +543,82 @@ namespace OPCUaClient
 
         #region Async methods
         
+        /// <summary>
+        /// Write a value on a tag
+        /// </summary>
+        /// <param name="address">
+        /// Address of the tag
+        /// </param>
+        /// <param name="value">
+        /// Value to write
+        /// </param>
+        public async Task<Tag> WriteAsync(String address, Object value)
+        {
+            Tag tag;
+            WriteValueCollection writeValues = new WriteValueCollection();
+            var writeValue = new WriteValue
+            {
+                NodeId = new NodeId(address, 2),
+                AttributeId = Attributes.Value,
+                Value = new DataValue()
+            };
+            writeValue.Value.Value = value;
+            writeValues.Add(writeValue);
+            WriteResponse response = await this.Session.WriteAsync(null, writeValues, new CancellationToken());
+
+            tag = new Tag()
+            {
+                Address = address,
+                Value = value,
+                Code = response.Results[0].Code
+            };
+
+            return tag;
+
+        }
+
+     
+
+        /// <summary>
+        /// Write a value on a tag
+        /// </summary>
+        /// <param name="tag"> <see cref="Tag"/></param>
+        public async Task<Tag> WriteAsync(Tag tag)
+        {
+            tag = await this.WriteAsync(tag.Address, tag.Value);
+
+            return tag;
+        }
+        
+        /// <summary>
+        /// Write a lis of values
+        /// </summary>
+        /// <param name="tags"> <see cref="Tag"/></param>
+        public async Task<List<Tag>> WriteAsync(List<Tag> tags)
+        {
+            WriteValueCollection writeValues = new WriteValueCollection();
+
+            
+
+            writeValues.AddRange(tags.Select(tag => new WriteValue
+            {
+                NodeId = new NodeId(tag.Address, 2),
+                AttributeId = Attributes.Value,
+                Value = new DataValue()
+                {
+                    Value = tag.Value
+                }
+            }));
+            
+            WriteResponse response = await this.Session.WriteAsync(null, writeValues, new CancellationToken());
+
+            for (int i = 0; i < response.Results.Count; i++)
+            {
+                tags[i].Code = response.Results[i].Code;
+            }
+
+            return tags;
+        }
         
 
 
