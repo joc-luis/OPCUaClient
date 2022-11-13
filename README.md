@@ -1,4 +1,4 @@
-# OPCUaClient
+# [OPCUaClient](https://www.nuget.org/packages/OPCUaClient/)
 Client for OPC UA Server
 
 ## Build with
@@ -48,11 +48,12 @@ dotnet add package OPCUaClient
  Tag tag = client.Read("Device.Counter.OK");
  //Or
  tag = await client.Read("Device.Counter.OK");
+ 
  Console.WriteLine($"Name: {tag.Name}");
  Console.WriteLine($"Address: {tag.Address}");
  Console.WriteLine($"Value: {tag.Value}");
  Console.WriteLine($"Quality: {tag.Quality}");
- Console.WriteLine($"Quality: {tag.Code}");
+ Console.WriteLine($"Code: {tag.Code}");
 ```
 
 ### Read multiple tags
@@ -65,16 +66,18 @@ var address = new List<String>
   "Device.Counter.Model",
   "Device.Counter.CycleTime"
 }
+
  var tags = client.Read(address);
  //Or
  tags await = client.ReadAsync(address);
+ 
  foreach(var tag in tags)
  {
     Console.WriteLine($"Name: {tag.Name}");
     Console.WriteLine($"Address: {tag.Address}");
     Console.WriteLine($"Value: {tag.Value}");
     Console.WriteLine($"Quality: {tag.Quality}");
-    Console.WriteLine($"Quality: {tag.Code}");
+    Console.WriteLine($"Code: {tag.Code}");
  }
 ```
 
@@ -130,6 +133,8 @@ client.Write(tags);
 
 ```cs
  var devices = client.Devices(true);
+ //Or
+ devices = await client.DevicesAsync(true);
  
  foreach(var device in devices)
  {
@@ -144,6 +149,8 @@ client.Write(tags);
 
 ```cs
  var groups = client.Group("Device", true);
+ //Or
+groups = await client.GroupAsync("Device", true); 
  
  foreach(var group in groups)
  {
@@ -158,6 +165,8 @@ client.Write(tags);
 
 ```cs
  var tags = client.Tags("Device.Counter");
+ //Or
+ tags = await client.TagsAsync("Device.Counter");
  
  foreach(var tag in tags)
  {

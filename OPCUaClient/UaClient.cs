@@ -544,6 +544,124 @@ namespace OPCUaClient
         #region Async methods
         
         /// <summary>
+        /// Scan root folder of OPC UA server and get all devices
+        /// </summary>
+        /// <param name="recursive">
+        /// Indicates whether to search within device groups
+        /// </param>
+        /// <returns>
+        /// List of <see cref="Device"/>
+        /// </returns>
+        public Task<List<Device>> DevicesAsync(bool recursive = false)
+        {
+            return Task.Run(() =>
+            {
+                Browser browser = new Browser(this.Session);
+                browser.BrowseDirection = BrowseDirection.Forward;
+                browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
+                browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
+
+                ReferenceDescriptionCollection browseResults = browser.Browse(Opc.Ua.ObjectIds.ObjectsFolder);
+
+                var devices = browseResults.Where(d => d.ToString() != "Server").Select(b => new Device
+                {
+                    Address = b.ToString()
+                }).ToList();
+
+                devices.ForEach(d =>
+                {
+                    d.Groups = this.Groups(d.Address, recursive);
+                    d.Tags = this.Tags(d.Address);
+                });
+                return devices;
+            });
+        }
+
+        
+        /// <summary>
+        /// Scan an address and retrieve the tags and groups
+        /// </summary>
+        /// <param name="address">
+        /// Address to search
+        /// </param>
+        /// <param name="recursive">
+        /// Indicates whether to search within group groups
+        /// </param>
+        /// <returns>
+        /// List of <see cref="Group"/>
+        /// </returns>
+        public Task<List<Group>> GroupsAsync(String address, bool recursive = false)
+        {
+            return Task.Run(() =>
+            {
+                var groups = new List<Group>();
+                Browser browser = new Browser(this.Session);
+                browser.BrowseDirection = BrowseDirection.Forward;
+                browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
+                browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
+
+                ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
+                foreach (var result in browseResults)
+                {
+                    if (result.NodeClass == NodeClass.Object)
+                    {
+                        groups.Add(new Group
+                        {
+                            Address = address + "." + result.ToString()
+                        });
+                    }
+                }
+
+                groups.ForEach(g =>
+                {
+                    g.Groups = this.Groups(g.Address, recursive);
+                    g.Tags = this.Tags(g.Address);
+                });
+
+                return groups;
+            });
+        }
+
+
+        /// <summary>
+        /// Scan an address and retrieve the tags.
+        /// </summary>
+        /// <param name="address">
+        /// Address to search
+        /// </param>
+        /// <returns>
+        /// List of <see cref="Tag"/>
+        /// </returns>
+        public Task<List<Tag>> TagsAsync(String address)
+        {
+            return Task.Run(() =>
+            {
+
+                var tags = new List<Tag>();
+                Browser browser = new Browser(this.Session);
+                browser.BrowseDirection = BrowseDirection.Forward;
+                browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
+                browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
+
+                ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
+                foreach (var result in browseResults)
+                {
+                    if (result.NodeClass == NodeClass.Variable)
+                    {
+                        tags.Add(new Tag
+                        {
+                            Address = address + "." + result.ToString()
+                        });
+                    }
+                }
+
+                return tags;
+            });
+        }
+        
+        
+        
+        /// <summary>
         /// Write a value on a tag
         /// </summary>
         /// <param name="address">

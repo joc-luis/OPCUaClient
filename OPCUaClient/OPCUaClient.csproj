@@ -11,7 +11,7 @@
     <RepositoryUrl>https://github.com/joc-luis/OPCUaClient</RepositoryUrl>
     <PackageTags>OPCUa Client OPC Ua</PackageTags>
     <RepositoryType>GIT</RepositoryType>
-    <PackageReleaseNotes>Add async write methods.
+    <PackageReleaseNotes>Add async scan methods.
 Add bugs to fix later.</PackageReleaseNotes>
     <Copyright>Joc-Luis</Copyright>
     <ApplicationIcon>connection.ico</ApplicationIcon>
@@ -19,7 +19,7 @@ Add bugs to fix later.</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Company>$(Authors)</Company>
     <Version>1.7.0</Version>
-    <PackageVersion>1.8.0</PackageVersion>
+    <PackageVersion>1.9.0</PackageVersion>
   </PropertyGroup>
 
   <ItemGroup>

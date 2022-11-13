@@ -63,5 +63,45 @@ namespace Test
             
             client.Disconnect();
         }
+        
+       
+
+        
+        [Test]
+        public async Task DevicesAsync()
+        {
+            UaClient client = new UaClient("testingConect", "opc.tcp://localhost:52240", true, true);
+            client.Connect(30);
+            var devices =  client.DevicesAsync();
+
+            Assert.AreEqual(2, (await devices).Count);
+            client.Disconnect();
+        }
+
+        [Test]
+        public async Task GroupsAsync()
+        {
+            UaClient client = new UaClient("testingConect", "opc.tcp://localhost:52240", true, true);
+            client.Connect(30);
+            var groups = await client.GroupsAsync("NexusMeter", false);
+
+            Assert.AreEqual(2, groups.Count);
+            client.Disconnect();
+        }
+
+        [Test]
+        public async Task TagsAsync()
+        {
+            UaClient client = new UaClient("testingConect", "opc.tcp://localhost:52240", true, true);
+            client.Connect(30);
+
+            var tags = await client.TagsAsync("NexusMeter");
+            Assert.AreEqual(1022, tags.Count);
+
+            tags = client.Tags("NexusMeter.Test");
+            Assert.AreEqual(5, tags.Count);
+            
+            client.Disconnect();
+        }
     }
 }
