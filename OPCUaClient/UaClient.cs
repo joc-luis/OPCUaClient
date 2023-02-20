@@ -378,7 +378,6 @@ namespace OPCUaClient
         public List<Tag> Read(List<String> address)
         {
             var tags = new List<Tag>();
-            int i = 0;
             
             ReadValueIdCollection readValues = new ReadValueIdCollection();
             readValues.AddRange(address.Select(a => new ReadValueId
@@ -389,19 +388,20 @@ namespace OPCUaClient
             
             this.Session.Read(null, 0, TimestampsToReturn.Both, readValues, out DataValueCollection dataValues, out DiagnosticInfoCollection diagnosticInfo);
 
-            address.ForEach(a =>
+            for (int i = 0; i < address.Count; i++)
             {
                 tags.Add(new Tag
                 {
-                    Address = a,
+                    Address = address[i],
                     Value = dataValues[i].Value,
                     Code = dataValues[i].StatusCode
                 });
-                i++;
-            });
+            }
 
             return tags;
         }
+        
+      
 
         /// <summary>
         /// Monitoring a tag and execute a function when the value change
@@ -483,22 +483,20 @@ namespace OPCUaClient
             browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
 
             ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
-            foreach (var result in browseResults)
+
+            for (int i = 0; i < browseResults.Count; i++)
             {
+                var result = browseResults[i];
+                
                 if (result.NodeClass == NodeClass.Object)
                 {
-                    groups.Add(new Group
-                    {
-                        Address = address + "." + result.ToString()
-                    });
+                    var group = new Group();
+                    group.Address = address + "." + result.ToString();
+                    group.Groups = this.Groups(group.Address, recursive);
+                    group.Tags = this.Tags(group.Address);
+                    groups.Add(group);
                 }
             }
-
-            groups.ForEach(g =>
-            {
-                g.Groups = this.Groups(g.Address, recursive);
-                g.Tags = this.Tags(g.Address);
-            });
 
             return groups;
         }
@@ -523,8 +521,9 @@ namespace OPCUaClient
             browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
 
             ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
-            foreach (var result in browseResults)
+            for (int i = 0; i < browseResults.Count; i++)
             {
+                var result = browseResults[i];
                 if (result.NodeClass == NodeClass.Variable)
                 {
                     tags.Add(new Tag
@@ -601,23 +600,19 @@ namespace OPCUaClient
                 browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
 
                 ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
-                foreach (var result in browseResults)
+
+                for (int i = 0; i < browseResults.Count; i++)
                 {
+                    var result = browseResults[0];
                     if (result.NodeClass == NodeClass.Object)
                     {
-                        groups.Add(new Group
-                        {
-                            Address = address + "." + result.ToString()
-                        });
+                        var group = new Group();
+                        group.Address = address + "." + result.ToString();
+                        group.Groups = this.Groups(group.Address, recursive);
+                        group.Tags = this.Tags(group.Address);
+                        groups.Add(group);
                     }
                 }
-
-                groups.ForEach(g =>
-                {
-                    g.Groups = this.Groups(g.Address, recursive);
-                    g.Tags = this.Tags(g.Address);
-                });
-
                 return groups;
             });
         }
@@ -644,8 +639,10 @@ namespace OPCUaClient
                 browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
 
                 ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
-                foreach (var result in browseResults)
+
+                for (int i = 0; i < browseResults.Count; i++)
                 {
+                    var result = browseResults[i];
                     if (result.NodeClass == NodeClass.Variable)
                     {
                         tags.Add(new Tag
@@ -701,11 +698,11 @@ namespace OPCUaClient
         /// Write a value on a tag
         /// </summary>
         /// <param name="tag"> <see cref="Tag"/></param>
-        public async Task<Tag> WriteAsync(Tag tag)
+        public Task<Tag> WriteAsync(Tag tag)
         {
-            tag = await this.WriteAsync(tag.Address, tag.Value);
+            var task = this.WriteAsync(tag.Address, tag.Value);
 
-            return tag;
+            return task;
         }
         
         /// <summary>
@@ -785,7 +782,6 @@ namespace OPCUaClient
         public async Task<List<Tag>> ReadAsync(List<String> address)
         {
             var tags = new List<Tag>();
-            int i = 0;
 
             ReadValueIdCollection readValues = new ReadValueIdCollection();
             readValues.AddRange(address.Select(a => new ReadValueId
@@ -796,16 +792,15 @@ namespace OPCUaClient
 
             var dataValues = await this.Session.ReadAsync(null, 0, TimestampsToReturn.Both, readValues, new CancellationToken());
 
-            address.ForEach(a =>
+            for (int i = 0; i < dataValues.Results.Count; i++)
             {
                 tags.Add(new Tag
                 {
-                    Address = a,
+                    Address = address[i],
                     Value = dataValues.Results[i].Value,
                     Code = dataValues.Results[i].StatusCode
                 });
-                i++;
-            });
+            }
 
             return tags;
         }

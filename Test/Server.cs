@@ -21,7 +21,7 @@ namespace Test
             client.Connect(30);
             var devices = client.Devices(true);
             Assert.AreEqual(2, devices.Count);
-            Assert.AreEqual(2, devices[0].Groups.Count);
+            Assert.AreEqual(3, devices[0].Groups.Count);
             Assert.AreEqual("NexusMeter", devices[0].Name);
             Assert.AreEqual(1022, devices[0].Tags.Count);
         }
@@ -44,7 +44,7 @@ namespace Test
             client.Connect(30);
             var groups = client.Groups("NexusMeter", false);
 
-            Assert.AreEqual(2, groups.Count);
+            Assert.AreEqual(3, groups.Count);
             client.Disconnect();
         }
 
@@ -85,7 +85,7 @@ namespace Test
             client.Connect(30);
             var groups = await client.GroupsAsync("NexusMeter", false);
 
-            Assert.AreEqual(2, groups.Count);
+            Assert.AreEqual(3, groups.Count);
             client.Disconnect();
         }
 
