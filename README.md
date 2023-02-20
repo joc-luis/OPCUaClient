@@ -48,12 +48,17 @@ dotnet add package OPCUaClient
  Tag tag = client.Read("Device.Counter.OK");
  //Or
  tag = await client.Read("Device.Counter.OK");
+
  
  Console.WriteLine($"Name: {tag.Name}");
  Console.WriteLine($"Address: {tag.Address}");
  Console.WriteLine($"Value: {tag.Value}");
  Console.WriteLine($"Quality: {tag.Quality}");
  Console.WriteLine($"Code: {tag.Code}");
+ 
+ int value = client.Read<int>("Device.Counter.Number");
+ value = await client.ReadAsync<int>("Device.Counter.Number");
+ 
 ```
 
 ### Read multiple tags

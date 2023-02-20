@@ -59,7 +59,7 @@ namespace Test
             Assert.AreEqual(1022, tags.Count);
 
             tags = client.Tags("NexusMeter.Test");
-            Assert.AreEqual(5, tags.Count);
+            Assert.AreEqual(6, tags.Count);
             
             client.Disconnect();
         }
@@ -99,7 +99,7 @@ namespace Test
             Assert.AreEqual(1022, tags.Count);
 
             tags = client.Tags("NexusMeter.Test");
-            Assert.AreEqual(5, tags.Count);
+            Assert.AreEqual(6, tags.Count);
             
             client.Disconnect();
         }

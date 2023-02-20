@@ -24,6 +24,16 @@ namespace Test
         }
 
         [Test]
+        public void UInteger()
+        {
+            UaClient client = new UaClient("testingRead", "opc.tcp://localhost:52240", true, true);
+            client.Connect(30);
+            UInt32 value = client.Read<UInt32>("NexusMeter.Test.UInteger");
+            client.Disconnect();
+            Assert.That(value, Is.EqualTo(12337));
+        }
+        
+        [Test]
         public void Integer()
         {
             UaClient client = new UaClient("testingRead", "opc.tcp://localhost:52240", true, true);
@@ -36,7 +46,9 @@ namespace Test
             value = new Random().Next(int.MinValue, int.MaxValue);
             client.Write("NexusMeter.Test.Integer", value);
             tag = client.Read("NexusMeter.Test.Integer");
+            int read = client.Read<int>("NexusMeter.Test.Integer");
             Assert.AreEqual(value, tag.Value);
+            Assert.AreEqual(value, read);
 
             client.Disconnect();
         }
@@ -173,6 +185,16 @@ namespace Test
             
         }
 
+        [Test]
+        public async Task UIntegerAsync()
+        {
+            UaClient client = new UaClient("testingRead", "opc.tcp://localhost:52240", true, true);
+            client.Connect(30);
+            UInt32 value = await client.ReadAsync<UInt32>("NexusMeter.Test.UInteger");
+            client.Disconnect();
+            Assert.That(value, Is.EqualTo(12337));
+        }
+        
         [Test]
         public async Task IntegerAsync()
         {
