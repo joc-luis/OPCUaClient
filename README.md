@@ -42,6 +42,21 @@ dotnet add package OPCUaClient
 ```
 
 
+### Change the namespace index (default namespace index is 2)
+
+```cs
+// Fixed namespace index
+client.NamespaceIndex = 3;
+
+// From URI
+client.SetNamespaceIndexFromUri("urn://N44/Ua/Device1");
+
+// From identifier 
+client.SetNamespaceIndexFromIdentifier("ua-server-identifier");
+
+```
+
+
 ### Read a tag
 
 ```cs
