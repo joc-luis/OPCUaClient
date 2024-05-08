@@ -99,6 +99,11 @@ namespace OPCUaClient
                 return this.Session.Connected;
             }
         }
+
+        /// <summary>
+        /// Namespace index (namespace index = n1 in ns=n1;s=n2).
+        /// </summary>
+        public ushort NamespaceIndex { get; set; } = 2;
         #endregion
 
         #region Public methods
@@ -256,6 +261,51 @@ namespace OPCUaClient
             }
         }
 
+        /// <summary>Set the namespace index using an identifier.</summary>
+        /// <param name="identifier">BrowseName of the OPC-UA object.</param>
+        public void SetNamespaceIndexFromIdentifier(string identifier)
+        {
+            this.Session.Browse(
+                null,
+                null,
+                Opc.Ua.ObjectIds.ObjectsFolder,
+                0u,
+                BrowseDirection.Forward,
+                ReferenceTypeIds.HierarchicalReferences,
+                true,
+                (uint)NodeClass.Variable | (uint)NodeClass.Object | (uint)NodeClass.Method,
+                out byte[] continuationPoint,
+                out ReferenceDescriptionCollection refdescs);
+
+            foreach (var item in refdescs)
+            {
+                if (item.DisplayName.Text.Equals(identifier))
+                {
+                    this.NamespaceIndex = item.BrowseName.NamespaceIndex;
+                    return;
+                }
+            }
+            throw new ArgumentException("Namespace index not found for identifier: ", nameof(identifier));
+        }
+
+        /// <summary>Set the namespace index using the namespace uri.</summary>
+        /// <param name="uri">The namespace uri </param>
+        public void SetNamespaceIndexFromUri(string uri)
+        {
+            //Get the namespace index of the specified namespace uri
+            int namespaceIndex = this.Session.NamespaceUris.GetIndex(uri);
+            //If the namespace uri doesn't exist, namespace index is -1 
+            if (namespaceIndex >= 0)
+            {
+                this.NamespaceIndex = (ushort)namespaceIndex;
+            }
+            else
+            {
+                throw new ArgumentException("Namespace index not found for uri: ", nameof(uri));
+
+            }
+        }
+
 
         /// <summary>
         /// Write a value on a tag
@@ -273,7 +323,7 @@ namespace OPCUaClient
             WriteValueCollection writeValues = new WriteValueCollection();
             var writeValue = new WriteValue
             {
-                NodeId = new NodeId(address, 2),
+                NodeId = new NodeId(address, this.NamespaceIndex),
                 AttributeId = Attributes.Value,
                 Value = new DataValue()
             };
@@ -319,7 +369,7 @@ namespace OPCUaClient
             {
                 new ReadValueId
                 {
-                    NodeId = new NodeId(address, 2),
+                    NodeId = new NodeId(address, this.NamespaceIndex),
                     AttributeId = Attributes.Value
                 }
             };
@@ -335,7 +385,7 @@ namespace OPCUaClient
    
 
         /// <summary>
-        /// Write a lis of values
+        /// Write a list of values
         /// </summary>
         /// <param name="tags"> <see cref="Tag"/></param>
         /// <exception cref="WriteException"></exception>
@@ -347,7 +397,7 @@ namespace OPCUaClient
 
             writeValues.AddRange(tags.Select(tag => new WriteValue
             {
-                NodeId = new NodeId(tag.Address, 2),
+                NodeId = new NodeId(tag.Address, this.NamespaceIndex),
                 AttributeId = Attributes.Value,
                 Value = new DataValue()
                 {
@@ -383,7 +433,7 @@ namespace OPCUaClient
             ReadValueIdCollection readValues = new ReadValueIdCollection();
             readValues.AddRange(address.Select(a => new ReadValueId
             {
-                NodeId = new NodeId(a, 2),
+                NodeId = new NodeId(a, this.NamespaceIndex),
                 AttributeId = Attributes.Value
             }));
             
@@ -419,7 +469,7 @@ namespace OPCUaClient
         {
             var subscription = this.Subscription(miliseconds);
             MonitoredItem monitored = new MonitoredItem();
-            monitored.StartNodeId = new NodeId(address, 2);
+            monitored.StartNodeId = new NodeId(address, this.NamespaceIndex);
             monitored.AttributeId = Attributes.Value;
             monitored.Notification += monitor;
             subscription.AddItem(monitored);
@@ -482,7 +532,7 @@ namespace OPCUaClient
             browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
             browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
 
-            ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
+            ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, this.NamespaceIndex));
             foreach (var result in browseResults)
             {
                 if (result.NodeClass == NodeClass.Object)
@@ -522,7 +572,7 @@ namespace OPCUaClient
             browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
             browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
 
-            ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
+            ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, this.NamespaceIndex));
             foreach (var result in browseResults)
             {
                 if (result.NodeClass == NodeClass.Variable)
@@ -600,7 +650,7 @@ namespace OPCUaClient
                 browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
                 browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
 
-                ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
+                ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, this.NamespaceIndex));
                 foreach (var result in browseResults)
                 {
                     if (result.NodeClass == NodeClass.Object)
@@ -643,7 +693,7 @@ namespace OPCUaClient
                 browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
                 browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
 
-                ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
+                ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, this.NamespaceIndex));
                 foreach (var result in browseResults)
                 {
                     if (result.NodeClass == NodeClass.Variable)
@@ -676,7 +726,7 @@ namespace OPCUaClient
             WriteValueCollection writeValues = new WriteValueCollection();
             var writeValue = new WriteValue
             {
-                NodeId = new NodeId(address, 2),
+                NodeId = new NodeId(address, this.NamespaceIndex),
                 AttributeId = Attributes.Value,
                 Value = new DataValue()
             };
@@ -720,7 +770,7 @@ namespace OPCUaClient
 
             writeValues.AddRange(tags.Select(tag => new WriteValue
             {
-                NodeId = new NodeId(tag.Address, 2),
+                NodeId = new NodeId(tag.Address, this.NamespaceIndex),
                 AttributeId = Attributes.Value,
                 Value = new DataValue()
                 {
@@ -760,7 +810,7 @@ namespace OPCUaClient
             {
                 new ReadValueId
                 {
-                    NodeId = new NodeId(address, 2),
+                    NodeId = new NodeId(address, this.NamespaceIndex),
                     AttributeId = Attributes.Value
                 }
             };
@@ -790,7 +840,7 @@ namespace OPCUaClient
             ReadValueIdCollection readValues = new ReadValueIdCollection();
             readValues.AddRange(address.Select(a => new ReadValueId
             {
-                NodeId = new NodeId(a, 2),
+                NodeId = new NodeId(a, this.NamespaceIndex),
                 AttributeId = Attributes.Value
             }));
 
