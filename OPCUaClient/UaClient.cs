@@ -16,16 +16,16 @@ namespace OPCUaClient
         private EndpointDescription EndpointDescription;
         private EndpointConfiguration EndpointConfig;
         private ConfiguredEndpoint Endpoint;
-        private Session Session = null;
+        private Session Session;
         private UserIdentity UserIdentity;
         private ApplicationConfiguration AppConfig;
         private int ReconnectPeriod = 10000;
         private object Lock = new object();
-        private SessionReconnectHandler ReconnectHandler;
+        private SessionReconnectHandler? ReconnectHandler;
         #endregion
 
         #region Private methods
-        private void KeepAlive(Session session, KeepAliveEventArgs e)
+        private void KeepAlive(ISession session, KeepAliveEventArgs e)
         {
             try
             {
@@ -36,7 +36,7 @@ namespace OPCUaClient
                         if (this.ReconnectHandler == null)
                         {
                             this.ReconnectHandler = new SessionReconnectHandler(true);
-                            this.ReconnectHandler.BeginReconnect(this.Session, this.ReconnectPeriod, this.Reconnect);
+                            this.ReconnectHandler.BeginReconnect(this.Session, this.ReconnectPeriod, callback: this.Reconnect);
                         }
                     }
                 }
@@ -59,7 +59,7 @@ namespace OPCUaClient
             {
                 if (this.ReconnectHandler.Session != null)
                 {
-                    this.Session = this.ReconnectHandler.Session;
+                    this.Session = (Session)this.ReconnectHandler.Session;
                 }
                 this.ReconnectHandler.Dispose();
                 this.ReconnectHandler = null;
