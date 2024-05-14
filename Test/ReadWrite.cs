@@ -315,11 +315,11 @@ namespace Test
             var result = await client.WriteAsync(values);
 
             var read = await client.ReadAsync(values.Select(v => v.Address).ToList());
-            Assert.AreEqual(values.Count, read.Count);
+            Assert.AreEqual(values.Count, read.Count());
 
-            for (int i = 0; i < read.Count; i++)
+            for (int i = 0; i < read.Count(); i++)
             {
-                Assert.AreEqual(values[i].Value, read[i].Value);
+                Assert.AreEqual(values[i].Value, read.ToArray()[i].Value);
             }
             client.Disconnect();
         }

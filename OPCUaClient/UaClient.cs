@@ -13,62 +13,40 @@ namespace OPCUaClient
     public class UaClient
     {
         #region Private Fields
-        private EndpointDescription EndpointDescription;
-        private EndpointConfiguration EndpointConfig;
-        private ConfiguredEndpoint Endpoint;
-        private Session Session = null;
-        private UserIdentity UserIdentity;
-        private ApplicationConfiguration AppConfig;
-        private int ReconnectPeriod = 10000;
-        private object Lock = new object();
-        private SessionReconnectHandler ReconnectHandler;
+
+        private readonly ConfiguredEndpoint _endpoint;
+        private Session? _session = null;
+        private readonly UserIdentity _userIdentity;
+        private readonly ApplicationConfiguration _appConfig;
+        private const int ReconnectPeriod = 10000;
+        private readonly object _lock = new object();
+        private SessionReconnectHandler? _reconnectHandler;
+
         #endregion
 
         #region Private methods
-        private void KeepAlive(Session session, KeepAliveEventArgs e)
-        {
-            try
-            {
-                if (ServiceResult.IsBad(e.Status))
-                {
-                    lock (this.Lock)
-                    {
-                        if (this.ReconnectHandler == null)
-                        {
-                            this.ReconnectHandler = new SessionReconnectHandler(true);
-                            this.ReconnectHandler.BeginReconnect(this.Session, this.ReconnectPeriod, this.Reconnect);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-
-
-            }
-        }
 
         private void Reconnect(object sender, EventArgs e)
         {
-            if (!Object.ReferenceEquals(sender, this.ReconnectHandler))
+            if (!ReferenceEquals(sender, this._reconnectHandler))
             {
                 return;
             }
 
-            lock (this.Lock)
+            lock (this._lock)
             {
-                if (this.ReconnectHandler.Session != null)
+                if (this._reconnectHandler.Session != null)
                 {
-                    this.Session = this.ReconnectHandler.Session;
+                    this._session = (Session)_reconnectHandler.Session;
                 }
-                this.ReconnectHandler.Dispose();
-                this.ReconnectHandler = null;
+
+                this._reconnectHandler.Dispose();
+                this._reconnectHandler = null;
             }
         }
 
         private Subscription Subscription(int miliseconds)
         {
-
             var subscription = new Subscription()
             {
                 PublishingEnabled = true,
@@ -80,28 +58,21 @@ namespace OPCUaClient
             };
 
             return subscription;
-
         }
+
         #endregion
 
         #region Public fields
+
         /// <summary>
         /// Indicates if the instance is connected to the server.
         /// </summary>
-        public bool IsConnected
-        {
-            get
-            {
-                if (this.Session == null)
-                {
-                    return false;
-                }
-                return this.Session.Connected;
-            }
-        }
+        public bool IsConnected => this._session is { Connected: true };
+
         #endregion
 
         #region Public methods
+
         /// <summary>
         /// Create a new instance
         /// </summary>
@@ -123,7 +94,8 @@ namespace OPCUaClient
         /// <param name="password">
         /// Password of the user
         /// </param>
-        public UaClient(String appName, String serverUrl, bool security, bool untrusted, String user = "", String password = "")
+        public UaClient(String appName, String serverUrl, bool security, bool untrusted, String user = "",
+            String password = "")
         {
             String path = Path.Combine(Directory.GetCurrentDirectory(), "Certificates");
             Directory.CreateDirectory(path);
@@ -132,25 +104,17 @@ namespace OPCUaClient
             Directory.CreateDirectory(Path.Combine(path, "TrustedPeer"));
             Directory.CreateDirectory(Path.Combine(path, "Rejected"));
             String hostName = System.Net.Dns.GetHostName();
-     
-            if (user.Length > 0)
-            {
-                UserIdentity = new UserIdentity(user, password);
-            }
-            else
-            {
-                UserIdentity = new UserIdentity();
-            }
-            AppConfig = new ApplicationConfiguration
+
+            _userIdentity = user.Length > 0 ? new UserIdentity(user, password) : new UserIdentity();
+            _appConfig = new ApplicationConfiguration
             {
                 ApplicationName = appName,
-                ApplicationUri = Utils.Format(@"urn:{0}"+appName, hostName),
+                ApplicationUri = Utils.Format(@"urn:{0}" + appName, hostName),
                 ApplicationType = ApplicationType.Client,
                 SecurityConfiguration = new SecurityConfiguration
                 {
                     ApplicationCertificate = new CertificateIdentifier
                     {
-                        StoreLocation = @"Directory",
                         StorePath = Path.Combine(path, "Application"),
                         SubjectName = $"CN={appName}, DC={hostName}"
                     },
@@ -182,11 +146,11 @@ namespace OPCUaClient
                 },
                 DisableHiResClock = false
             };
-            AppConfig.Validate(ApplicationType.Client).GetAwaiter().GetResult();
+            _appConfig.Validate(ApplicationType.Client).GetAwaiter().GetResult();
 
-            if (AppConfig.SecurityConfiguration.AutoAcceptUntrustedCertificates)
+            if (_appConfig.SecurityConfiguration.AutoAcceptUntrustedCertificates)
             {
-                AppConfig.CertificateValidator.CertificateValidation += (s, ee) =>
+                _appConfig.CertificateValidator.CertificateValidation += (s, ee) =>
                 {
                     ee.Accept = (ee.Error.StatusCode == StatusCodes.BadCertificateUntrusted && untrusted);
                 };
@@ -196,15 +160,14 @@ namespace OPCUaClient
             {
                 ApplicationName = appName,
                 ApplicationType = ApplicationType.Client,
-                ApplicationConfiguration = AppConfig
+                ApplicationConfiguration = _appConfig
             };
             Utils.SetTraceMask(0);
             application.CheckApplicationInstanceCertificate(true, 2048).GetAwaiter().GetResult();
 
-            EndpointDescription = CoreClientUtils.SelectEndpoint(AppConfig, serverUrl, security);
-            EndpointConfig = EndpointConfiguration.Create(AppConfig);
-            Endpoint = new ConfiguredEndpoint(null, EndpointDescription, EndpointConfig);
-        
+            var endpointDescription = CoreClientUtils.SelectEndpoint(_appConfig, serverUrl, security);
+            var endpointConfig = EndpointConfiguration.Create(_appConfig);
+            _endpoint = new ConfiguredEndpoint(null, endpointDescription, endpointConfig);
         }
 
         /// <summary>
@@ -217,21 +180,41 @@ namespace OPCUaClient
         /// Sets whether to try to connect to the server in case the connection is lost.
         /// </param>
         /// <exception cref="ServerException"></exception>
-
         public void Connect(uint timeOut = 5, bool keepAlive = false)
         {
             this.Disconnect();
 
-            this.Session = Task.Run(async () => await Session.Create(AppConfig, Endpoint, false, false, AppConfig.ApplicationName, timeOut * 1000, UserIdentity, null)).GetAwaiter().GetResult();
-            
+            this._session =
+                Task.Run(
+                    async () => await Session.Create(_appConfig, _endpoint, false, false, _appConfig.ApplicationName,
+                        timeOut * 1000, _userIdentity, null)).GetAwaiter().GetResult();
+
             if (keepAlive)
             {
-                this.Session.KeepAlive += this.KeepAlive;
+                this._session.KeepAlive += this.KeepAlive;
             }
 
-            if (this.Session == null || !this.Session.Connected)
+            if (this._session == null || !this._session.Connected)
             {
                 throw new ServerException("Error creating a session on the server");
+            }
+        }
+
+        private void KeepAlive(ISession session, KeepAliveEventArgs e)
+        {
+            try
+            {
+                if (!ServiceResult.IsBad(e.Status)) return;
+                lock (this._lock)
+                {
+                    if (this._reconnectHandler != null) return;
+                    this._reconnectHandler = new SessionReconnectHandler(true);
+                    this._reconnectHandler.BeginReconnect(this._session, ReconnectPeriod, this.Reconnect);
+                }
+            }
+            catch (Exception ex)
+            {
+                // ignored
             }
         }
 
@@ -240,19 +223,19 @@ namespace OPCUaClient
         /// </summary>
         public void Disconnect()
         {
-            if (this.Session != null && this.Session.Connected)
+            if (this._session is { Connected: true })
             {
-
-                if (this.Session.Subscriptions != null && this.Session.Subscriptions.Any())
+                if (this._session.Subscriptions != null && this._session.Subscriptions.Any())
                 {
-                    foreach (var subscription in this.Session.Subscriptions)
+                    foreach (var subscription in this._session.Subscriptions)
                     {
                         subscription.Delete(true);
                     }
                 }
-                this.Session.Close();
-                this.Session.Dispose();
-                this.Session = null;
+
+                this._session.Close();
+                this._session.Dispose();
+                this._session = null;
             }
         }
 
@@ -269,24 +252,25 @@ namespace OPCUaClient
         /// <exception cref="WriteException"></exception>
         public void Write(String address, Object value)
         {
-            
             WriteValueCollection writeValues = new WriteValueCollection();
             var writeValue = new WriteValue
             {
                 NodeId = new NodeId(address, 2),
                 AttributeId = Attributes.Value,
-                Value = new DataValue()
+                Value = new DataValue
+                {
+                    Value = value
+                }
             };
-            writeValue.Value.Value = value;
             writeValues.Add(writeValue);
-            this.Session.Write(null, writeValues, out StatusCodeCollection statusCodes, out DiagnosticInfoCollection diagnosticInfo);
+            this._session.Write(null, writeValues, out StatusCodeCollection statusCodes,
+                out DiagnosticInfoCollection diagnosticInfo);
             if (!StatusCode.IsGood(statusCodes[0]))
             {
                 throw new WriteException("Error writing value. Code: " + statusCodes[0].Code.ToString());
             }
         }
 
-     
 
         /// <summary>
         /// Write a value on a tag
@@ -298,7 +282,7 @@ namespace OPCUaClient
             this.Write(tag.Address, tag.Value);
         }
 
-    
+
         /// <summary>
         /// Read a tag of the sepecific address
         /// </summary>
@@ -323,16 +307,16 @@ namespace OPCUaClient
                     AttributeId = Attributes.Value
                 }
             };
+            this._session.Read(null, 0, TimestampsToReturn.Both, readValues, out DataValueCollection dataValues,
+                out DiagnosticInfoCollection diagnosticInfo);
 
-            this.Session.Read(null, 0, TimestampsToReturn.Both, readValues, out DataValueCollection dataValues, out DiagnosticInfoCollection diagnosticInfo);
 
-           
             tag.Value = dataValues[0].Value;
             tag.Code = dataValues[0].StatusCode;
             return tag;
         }
-        
-        
+
+
         /// <summary>
         /// Read an address
         /// </summary>
@@ -360,19 +344,21 @@ namespace OPCUaClient
                 }
             };
 
-            this.Session.Read(null, 0, TimestampsToReturn.Both, readValues, out DataValueCollection dataValues, out DiagnosticInfoCollection diagnosticInfo);
+
+            this._session.Read(null, 0, TimestampsToReturn.Both, readValues, out DataValueCollection dataValues,
+                out DiagnosticInfoCollection diagnosticInfo);
 
 
             if (dataValues[0].StatusCode != StatusCodes.Good)
             {
                 throw new ReadException(dataValues[0].StatusCode.Code.ToString());
             }
-            
+
             if (typeof(TValue) == typeof(Boolean))
             {
                 return (TValue)(object)Convert.ToBoolean(dataValues[0].Value);
             }
-            if (typeof(TValue) == typeof(byte))
+            else if (typeof(TValue) == typeof(byte))
             {
                 return (TValue)(object)Convert.ToByte(dataValues[0].Value);
             }
@@ -422,7 +408,6 @@ namespace OPCUaClient
             }
         }
 
-   
 
         /// <summary>
         /// Write a lis of values
@@ -433,7 +418,6 @@ namespace OPCUaClient
         {
             WriteValueCollection writeValues = new WriteValueCollection();
 
-            
 
             writeValues.AddRange(tags.Select(tag => new WriteValue
             {
@@ -444,17 +428,16 @@ namespace OPCUaClient
                     Value = tag.Value
                 }
             }));
-            
-            this.Session.Write(null, writeValues, out StatusCodeCollection statusCodes, out DiagnosticInfoCollection diagnosticInfo);
+            this._session.Write(null, writeValues, out StatusCodeCollection statusCodes,
+                out DiagnosticInfoCollection diagnosticInfo);
 
-            if (statusCodes.Where(sc => !StatusCode.IsGood(sc)).Any())
+            if (statusCodes.All(StatusCode.IsGood)) return;
             {
-                var status = statusCodes.Where(sc => !StatusCode.IsGood(sc)).First();
+                var status = statusCodes.First(sc => !StatusCode.IsGood(sc));
                 throw new WriteException("Error writing value. Code: " + status.Code.ToString());
             }
         }
 
-    
 
         /// <summary>
         /// Read a list of tags on the OPCUA Server
@@ -468,15 +451,16 @@ namespace OPCUaClient
         public List<Tag> Read(List<String> address)
         {
             var tags = new List<Tag>();
-            
+
             ReadValueIdCollection readValues = new ReadValueIdCollection();
             readValues.AddRange(address.Select(a => new ReadValueId
             {
                 NodeId = new NodeId(a, 2),
                 AttributeId = Attributes.Value
             }));
-            
-            this.Session.Read(null, 0, TimestampsToReturn.Both, readValues, out DataValueCollection dataValues, out DiagnosticInfoCollection diagnosticInfo);
+
+            this._session.Read(null, 0, TimestampsToReturn.Both, readValues, out DataValueCollection dataValues,
+                out DiagnosticInfoCollection diagnosticInfo);
 
             for (int i = 0; i < address.Count; i++)
             {
@@ -490,8 +474,7 @@ namespace OPCUaClient
 
             return tags;
         }
-        
-      
+
 
         /// <summary>
         /// Monitoring a tag and execute a function when the value change
@@ -513,7 +496,7 @@ namespace OPCUaClient
             monitored.AttributeId = Attributes.Value;
             monitored.Notification += monitor;
             subscription.AddItem(monitored);
-            this.Session.AddSubscription(subscription);
+            this._session.AddSubscription(subscription);
             subscription.Create();
             subscription.ApplyChanges();
         }
@@ -530,10 +513,12 @@ namespace OPCUaClient
         /// </returns>
         public List<Device> Devices(bool recursive = false)
         {
-            Browser browser = new Browser(this.Session);
-            browser.BrowseDirection = BrowseDirection.Forward;
-            browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
-            browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
+            Browser browser = new Browser(this._session)
+            {
+                BrowseDirection = BrowseDirection.Forward,
+                NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable,
+                ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences
+            };
 
             ReferenceDescriptionCollection browseResults = browser.Browse(Opc.Ua.ObjectIds.ObjectsFolder);
 
@@ -567,25 +552,25 @@ namespace OPCUaClient
         public List<Group> Groups(String address, bool recursive = false)
         {
             var groups = new List<Group>();
-            Browser browser = new Browser(this.Session);
-            browser.BrowseDirection = BrowseDirection.Forward;
-            browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
-            browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
+            Browser browser = new Browser(this._session)
+            {
+                BrowseDirection = BrowseDirection.Forward,
+                NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable,
+                ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences
+            };
 
             ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
 
-            for (int i = 0; i < browseResults.Count; i++)
+            foreach (var result in browseResults)
             {
-                var result = browseResults[i];
-                
-                if (result.NodeClass == NodeClass.Object)
+                if (result.NodeClass != NodeClass.Object) continue;
+                var group = new Group
                 {
-                    var group = new Group();
-                    group.Address = address + "." + result.ToString();
-                    group.Groups = this.Groups(group.Address, recursive);
-                    group.Tags = this.Tags(group.Address);
-                    groups.Add(group);
-                }
+                    Address = address + "." + result.ToString()
+                };
+                group.Groups = this.Groups(group.Address, recursive);
+                group.Tags = this.Tags(group.Address);
+                groups.Add(group);
             }
 
             return groups;
@@ -603,17 +588,17 @@ namespace OPCUaClient
         /// </returns>
         public List<Tag> Tags(String address)
         {
-
             var tags = new List<Tag>();
-            Browser browser = new Browser(this.Session);
-            browser.BrowseDirection = BrowseDirection.Forward;
-            browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
-            browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
+            Browser browser = new Browser(this._session)
+            {
+                BrowseDirection = BrowseDirection.Forward,
+                NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable,
+                ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences
+            };
 
             ReferenceDescriptionCollection browseResults = browser.Browse(new NodeId(address, 2));
-            for (int i = 0; i < browseResults.Count; i++)
+            foreach (var result in browseResults)
             {
-                var result = browseResults[i];
                 if (result.NodeClass == NodeClass.Variable)
                 {
                     tags.Add(new Tag
@@ -625,13 +610,10 @@ namespace OPCUaClient
 
             return tags;
         }
-        
-        
-
 
 
         #region Async methods
-        
+
         /// <summary>
         /// Scan root folder of OPC UA server and get all devices
         /// </summary>
@@ -641,14 +623,16 @@ namespace OPCUaClient
         /// <returns>
         /// List of <see cref="Device"/>
         /// </returns>
-        public Task<List<Device>> DevicesAsync(bool recursive = false)
+        public Task<List<Device>> DevicesAsync(bool recursive = false, CancellationToken ct = default)
         {
             return Task.Run(() =>
             {
-                Browser browser = new Browser(this.Session);
-                browser.BrowseDirection = BrowseDirection.Forward;
-                browser.NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable;
-                browser.ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences;
+                Browser browser = new Browser(this._session)
+                {
+                    BrowseDirection = BrowseDirection.Forward,
+                    NodeClassMask = (int)NodeClass.Object | (int)NodeClass.Variable,
+                    ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences
+                };
 
                 ReferenceDescriptionCollection browseResults = browser.Browse(Opc.Ua.ObjectIds.ObjectsFolder);
 
@@ -663,10 +647,10 @@ namespace OPCUaClient
                     d.Tags = this.Tags(d.Address);
                 });
                 return devices;
-            });
+            }, ct);
         }
 
-        
+
         /// <summary>
         /// Scan an address and retrieve the tags and groups
         /// </summary>
@@ -676,12 +660,13 @@ namespace OPCUaClient
         /// <param name="recursive">
         /// Indicates whether to search within group groups
         /// </param>
+        /// <param name="ct"></param>
         /// <returns>
         /// List of <see cref="Group"/>
         /// </returns>
-        public Task<List<Group>> GroupsAsync(String address, bool recursive = false)
+        public Task<List<Group>> GroupsAsync(String address, bool recursive = false, CancellationToken ct = default)
         {
-            return Task.Run(() => Groups(address, recursive));
+            return Task.Run(() => Groups(address, recursive), ct);
         }
 
 
@@ -691,16 +676,16 @@ namespace OPCUaClient
         /// <param name="address">
         /// Address to search
         /// </param>
+        /// <param name="ct"></param>
         /// <returns>
         /// List of <see cref="Tag"/>
         /// </returns>
-        public Task<List<Tag>> TagsAsync(String address)
+        public Task<List<Tag>> TagsAsync(String address, CancellationToken ct = default)
         {
-            return Task.Run(() => Tags(address));
+            return Task.Run(() => Tags(address), ct);
         }
-        
-        
-        
+
+
         /// <summary>
         /// Write a value on a tag
         /// </summary>
@@ -710,7 +695,8 @@ namespace OPCUaClient
         /// <param name="value">
         /// Value to write
         /// </param>
-        public async Task<Tag> WriteAsync(String address, Object value)
+        /// <param name="ct"></param>
+        public async Task<Tag> WriteAsync(String address, Object value, CancellationToken ct = default)
         {
             Tag tag;
             WriteValueCollection writeValues = new WriteValueCollection();
@@ -718,11 +704,13 @@ namespace OPCUaClient
             {
                 NodeId = new NodeId(address, 2),
                 AttributeId = Attributes.Value,
-                Value = new DataValue()
+                Value = new DataValue
+                {
+                    Value = value
+                }
             };
-            writeValue.Value.Value = value;
             writeValues.Add(writeValue);
-            WriteResponse response = await this.Session.WriteAsync(null, writeValues, new CancellationToken());
+            WriteResponse response = await this._session.WriteAsync(null, writeValues, ct);
 
             tag = new Tag()
             {
@@ -732,31 +720,32 @@ namespace OPCUaClient
             };
 
             return tag;
-
         }
 
-     
 
         /// <summary>
         /// Write a value on a tag
         /// </summary>
         /// <param name="tag"> <see cref="Tag"/></param>
-        public Task<Tag> WriteAsync(Tag tag)
+        /// <param name="ct"></param>
+        public Task<Tag> WriteAsync(Tag tag, CancellationToken ct = default)
         {
-            var task = this.WriteAsync(tag.Address, tag.Value);
+            var task = this.WriteAsync(tag.Address, tag.Value, ct);
 
             return task;
         }
-        
+
         /// <summary>
         /// Write a lis of values
         /// </summary>
-        /// <param name="tags"> <see cref="Tag"/></param>
-        public async Task<List<Tag>> WriteAsync(List<Tag> tags)
+        /// <param name="tags"><see cref="Tag"/></param>
+        /// <param name="ct">
+        /// Cancellation token
+        /// </param>
+        public async Task<IEnumerable<Tag>> WriteAsync(List<Tag> tags, CancellationToken ct = default)
         {
             WriteValueCollection writeValues = new WriteValueCollection();
 
-            
 
             writeValues.AddRange(tags.Select(tag => new WriteValue
             {
@@ -767,8 +756,8 @@ namespace OPCUaClient
                     Value = tag.Value
                 }
             }));
-            
-            WriteResponse response = await this.Session.WriteAsync(null, writeValues, new CancellationToken());
+
+            WriteResponse response = await this._session.WriteAsync(null, writeValues, ct);
 
             for (int i = 0; i < response.Results.Count; i++)
             {
@@ -777,7 +766,6 @@ namespace OPCUaClient
 
             return tags;
         }
-        
 
 
         /// <summary>
@@ -786,10 +774,11 @@ namespace OPCUaClient
         /// <param name="address">
         /// Address of the tag
         /// </param>
+        /// <param name="ct"></param>F
         /// <returns>
         /// <see cref="Tag"/>
         /// </returns>
-        public async Task<Tag> ReadAsync(String address)
+        public async Task<Tag> ReadAsync(String address, CancellationToken ct = default)
         {
             var tag = new Tag
             {
@@ -805,20 +794,21 @@ namespace OPCUaClient
                 }
             };
 
-            var dataValues = await this.Session.ReadAsync(null, 0, TimestampsToReturn.Both, readValues, new CancellationToken());
+            var dataValues = await this._session.ReadAsync(null, 0, TimestampsToReturn.Both, readValues, ct);
 
             tag.Value = dataValues.Results[0].Value;
             tag.Code = dataValues.Results[0].StatusCode;
 
             return tag;
         }
-        
-         /// <summary>
+
+        /// <summary>
         /// Read an address
         /// </summary>
         /// <param name="address">
         /// Address to read.
         /// </param>
+        /// <param name="ct"></param>
         /// <typeparam name="TValue">
         /// Type of value to read.
         /// </typeparam>
@@ -829,10 +819,10 @@ namespace OPCUaClient
         /// <exception cref="NotSupportedException">
         /// If the type is not supported.
         /// </exception>
-        public Task<TValue> ReadAsync<TValue>(String address)
-         {
-             return Task.Run(() => Read<TValue>(address));
-         }
+        public Task<TValue> ReadAsync<TValue>(String address, CancellationToken ct = default)
+        {
+            return Task.Run(() => Read<TValue>(address), ct);
+        }
 
 
         /// <summary>
@@ -841,10 +831,11 @@ namespace OPCUaClient
         /// <param name="address">
         /// List of address to read.
         /// </param>
+        /// <param name="ct"></param>
         /// <returns>
         /// A list of tags <see cref="Tag"/>
         /// </returns>
-        public async Task<List<Tag>> ReadAsync(List<String> address)
+        public async Task<IEnumerable<Tag>> ReadAsync(IEnumerable<String> address, CancellationToken ct = default)
         {
             var tags = new List<Tag>();
 
@@ -855,13 +846,14 @@ namespace OPCUaClient
                 AttributeId = Attributes.Value
             }));
 
-            var dataValues = await this.Session.ReadAsync(null, 0, TimestampsToReturn.Both, readValues, new CancellationToken());
+            var dataValues =
+                await this._session.ReadAsync(null, 0, TimestampsToReturn.Both, readValues, ct);
 
             for (int i = 0; i < dataValues.Results.Count; i++)
             {
                 tags.Add(new Tag
                 {
-                    Address = address[i],
+                    Address = address.ToArray()[i],
                     Value = dataValues.Results[i].Value,
                     Code = dataValues.Results[i].StatusCode
                 });
@@ -870,9 +862,7 @@ namespace OPCUaClient
             return tags;
         }
 
-
         #endregion
-
 
         #endregion
     }
