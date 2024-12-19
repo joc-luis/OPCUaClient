@@ -13,11 +13,11 @@ namespace Test
 
             client.Write("NexusMeter.Test.Boolean", true);
             var tag = client.Read("NexusMeter.Test.Boolean");
-            Assert.AreEqual(true, tag.Value);
+            Assert.Equals(true, tag.Value);
 
             client.Write("NexusMeter.Test.Boolean", false);
             tag = client.Read("NexusMeter.Test.Boolean");
-            Assert.AreEqual(false, tag.Value);
+            Assert.Equals(false, tag.Value);
 
             client.Disconnect();
             
@@ -26,9 +26,11 @@ namespace Test
         [Test]
         public void UInteger()
         {
+            const string address = "NexusMeter.Test.UInteger";
             UaClient client = new UaClient("testingRead", "opc.tcp://localhost:52240", true, true);
             client.Connect(30);
-            UInt32 value = client.Read<UInt32>("NexusMeter.Test.UInteger");
+            client.Write(address, 12337);
+            UInt32 value = client.Read<UInt32>(address);
             client.Disconnect();
             Assert.That(value, Is.EqualTo(12337));
         }
@@ -36,19 +38,19 @@ namespace Test
         [Test]
         public void Integer()
         {
-            UaClient client = new UaClient("testingRead", "opc.tcp://localhost:52240", true, true);
+            UaClient client = new UaClient("testingRead", "opc.tcp://localhost:52240", false, true);
             client.Connect(30);
             int value = new Random().Next(int.MinValue, int.MaxValue);
             client.Write("NexusMeter.Test.Integer", value);
             var tag = client.Read("NexusMeter.Test.Integer");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             value = new Random().Next(int.MinValue, int.MaxValue);
             client.Write("NexusMeter.Test.Integer", value);
             tag = client.Read("NexusMeter.Test.Integer");
             int read = client.Read<int>("NexusMeter.Test.Integer");
-            Assert.AreEqual(value, tag.Value);
-            Assert.AreEqual(value, read);
+            Assert.Equals(value, tag.Value);
+            Assert.Equals(value, read);
 
             client.Disconnect();
         }
@@ -61,12 +63,12 @@ namespace Test
             double value = new Random().NextDouble();
             client.Write("NexusMeter.Test.Double", value);
             var tag = client.Read("NexusMeter.Test.Double");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             value = new Random().NextDouble();
             client.Write("NexusMeter.Test.Double", value);
             tag = client.Read("NexusMeter.Test.Double");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             client.Disconnect();
         }
@@ -79,12 +81,12 @@ namespace Test
             float value = new Random().NextSingle();
             client.Write("NexusMeter.Test.Float", value);
             var tag = client.Read("NexusMeter.Test.Float");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             value = new Random().NextSingle();
             client.Write("NexusMeter.Test.Float", value);
             tag = client.Read("NexusMeter.Test.Float");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             client.Disconnect();
         }
@@ -103,7 +105,7 @@ namespace Test
 
             client.Write("NexusMeter.Test.String", value);
             var tag = client.Read("NexusMeter.Test.String");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             while (value.Length < 10)
             {
@@ -111,7 +113,7 @@ namespace Test
             }
             client.Write("NexusMeter.Test.String", value);
             tag = client.Read("NexusMeter.Test.String");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             client.Disconnect();
         }
@@ -155,11 +157,11 @@ namespace Test
             client.Write(values);
 
             var read = client.Read(values.Select(v => v.Address).ToList());
-            Assert.AreEqual(values.Count, read.Count);
+            Assert.Equals(values.Count, read.Count);
 
             for (int i = 0; i < read.Count; i++)
             {
-                Assert.AreEqual(values[i].Value, read[i].Value);
+                Assert.Equals(values[i].Value, read[i].Value);
             }
             client.Disconnect();
         }
@@ -175,11 +177,11 @@ namespace Test
 
             await client.WriteAsync("NexusMeter.Test.Boolean", true);
             var tag = await client.ReadAsync("NexusMeter.Test.Boolean");
-            Assert.AreEqual(true, tag.Value);
+            Assert.Equals(true, tag.Value);
 
             await client.WriteAsync("NexusMeter.Test.Boolean", false);
             tag = await client.ReadAsync("NexusMeter.Test.Boolean");
-            Assert.AreEqual(false, tag.Value);
+            Assert.Equals(false, tag.Value);
 
             client.Disconnect();
             
@@ -203,12 +205,12 @@ namespace Test
             int value = new Random().Next(int.MinValue, int.MaxValue);
             await client.WriteAsync("NexusMeter.Test.Integer", value);
             var tag = await client.ReadAsync("NexusMeter.Test.Integer");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             value = new Random().Next(int.MinValue, int.MaxValue);
             client.Write("NexusMeter.Test.Integer", value);
             tag = client.Read("NexusMeter.Test.Integer");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             client.Disconnect();
         }
@@ -221,12 +223,12 @@ namespace Test
             double value = new Random().NextDouble();
             await client.WriteAsync("NexusMeter.Test.Double", value);
             var tag = await client.ReadAsync("NexusMeter.Test.Double");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             value = new Random().NextDouble();
             await client.WriteAsync("NexusMeter.Test.Double", value);
             tag = await client.ReadAsync("NexusMeter.Test.Double");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             client.Disconnect();
         }
@@ -239,12 +241,12 @@ namespace Test
             float value = new Random().NextSingle();
             await client.WriteAsync("NexusMeter.Test.Float", value);
             var tag = await client.ReadAsync("NexusMeter.Test.Float");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             value = new Random().NextSingle();
             await client.WriteAsync("NexusMeter.Test.Float", value);
             tag = await client.ReadAsync("NexusMeter.Test.Float");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             client.Disconnect();
         }
@@ -263,7 +265,7 @@ namespace Test
 
             await client.WriteAsync("NexusMeter.Test.String", value);
             var tag = await client.ReadAsync("NexusMeter.Test.String");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             while (value.Length < 10)
             {
@@ -271,7 +273,7 @@ namespace Test
             }
             await client.WriteAsync("NexusMeter.Test.String", value);
             tag = await client.ReadAsync("NexusMeter.Test.String");
-            Assert.AreEqual(value, tag.Value);
+            Assert.Equals(value, tag.Value);
 
             client.Disconnect();
         }
@@ -315,11 +317,11 @@ namespace Test
             var result = await client.WriteAsync(values);
 
             var read = await client.ReadAsync(values.Select(v => v.Address).ToList());
-            Assert.AreEqual(values.Count, read.Count());
+            Assert.Equals(values.Count, read.Count());
 
             for (int i = 0; i < read.Count(); i++)
             {
-                Assert.AreEqual(values[i].Value, read.ToArray()[i].Value);
+                Assert.Equals(values[i].Value, read.ToArray()[i].Value);
             }
             client.Disconnect();
         }
@@ -362,8 +364,8 @@ namespace Test
 
             var tags = await client.WriteAsync(values);
             client.Disconnect();
-            var tag = tags.Where(t => t.Name == "Tag989").First();
-            Assert.IsFalse(tag.Quality);
+            var tag = tags.First(t => t.Name == "Tag989");
+            Assert.Equals(tag.Quality, false);
         }
     }
 }

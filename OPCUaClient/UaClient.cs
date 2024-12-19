@@ -150,10 +150,7 @@ namespace OPCUaClient
 
             if (_appConfig.SecurityConfiguration.AutoAcceptUntrustedCertificates)
             {
-                _appConfig.CertificateValidator.CertificateValidation += (s, ee) =>
-                {
-                    ee.Accept = (ee.Error.StatusCode == StatusCodes.BadCertificateUntrusted && untrusted);
-                };
+                _appConfig.CertificateValidator.CertificateValidation += (s, ee) => { ee.Accept = (ee.Error.StatusCode == StatusCodes.BadCertificateUntrusted && untrusted); };
             }
 
             var application = new ApplicationInstance
@@ -200,6 +197,34 @@ namespace OPCUaClient
             }
         }
 
+        /// <summary>
+        /// Open the connection with the OPC UA Server
+        /// </summary>
+        /// <param name="timeOut">
+        /// Timeout to try to connect with the server in seconds.
+        /// </param>
+        /// <param name="keepAlive">
+        /// Sets whether to try to connect to the server in case the connection is lost.
+        /// </param>
+        /// <exception cref="ServerException"></exception>
+        public async Task ConnectAsync(uint timeOut = 5, bool keepAlive = false, CancellationToken ct = default)
+        {
+            await this.DisconnectAsync(ct);
+
+            this._session = await Session.Create(_appConfig, _endpoint, false, false, _appConfig.ApplicationName,
+                timeOut * 1000, _userIdentity, null, ct);
+
+            if (keepAlive)
+            {
+                this._session.KeepAlive += this.KeepAlive;
+            }
+
+            if (this._session == null || !this._session.Connected)
+            {
+                throw new ServerException("Error creating a session on the server");
+            }
+        }
+
         private void KeepAlive(ISession session, KeepAliveEventArgs e)
         {
             try
@@ -234,6 +259,27 @@ namespace OPCUaClient
                 }
 
                 this._session.Close();
+                this._session.Dispose();
+                this._session = null;
+            }
+        }
+
+        /// <summary>
+        /// Close the connection with the OPC UA Server
+        /// </summary>
+        public async Task DisconnectAsync(CancellationToken ct = default)
+        {
+            if (this._session is { Connected: true })
+            {
+                if (this._session.Subscriptions != null && this._session.Subscriptions.Any())
+                {
+                    foreach (var subscription in this._session.Subscriptions)
+                    {
+                        await subscription.DeleteAsync(true, ct);
+                    }
+                }
+
+                await this._session.CloseAsync(ct);
                 this._session.Dispose();
                 this._session = null;
             }
@@ -620,6 +666,9 @@ namespace OPCUaClient
         /// <param name="recursive">
         /// Indicates whether to search within device groups
         /// </param>
+        /// <param name="ct">
+        /// Cancellation token
+        /// </param>
         /// <returns>
         /// List of <see cref="Device"/>
         /// </returns>
@@ -660,7 +709,9 @@ namespace OPCUaClient
         /// <param name="recursive">
         /// Indicates whether to search within group groups
         /// </param>
-        /// <param name="ct"></param>
+        /// <param name="ct">
+        /// Cancellation token
+        /// </param>
         /// <returns>
         /// List of <see cref="Group"/>
         /// </returns>
@@ -676,7 +727,9 @@ namespace OPCUaClient
         /// <param name="address">
         /// Address to search
         /// </param>
-        /// <param name="ct"></param>
+        /// <param name="ct">
+        ///  Cancellation token
+        /// </param>
         /// <returns>
         /// List of <see cref="Tag"/>
         /// </returns>
@@ -695,10 +748,11 @@ namespace OPCUaClient
         /// <param name="value">
         /// Value to write
         /// </param>
-        /// <param name="ct"></param>
+        /// <param name="ct">
+        /// Cancellation token
+        /// </param>
         public async Task<Tag> WriteAsync(String address, Object value, CancellationToken ct = default)
         {
-            Tag tag;
             WriteValueCollection writeValues = new WriteValueCollection();
             var writeValue = new WriteValue
             {
@@ -712,7 +766,7 @@ namespace OPCUaClient
             writeValues.Add(writeValue);
             WriteResponse response = await this._session.WriteAsync(null, writeValues, ct);
 
-            tag = new Tag()
+            var tag = new Tag()
             {
                 Address = address,
                 Value = value,
@@ -727,7 +781,7 @@ namespace OPCUaClient
         /// Write a value on a tag
         /// </summary>
         /// <param name="tag"> <see cref="Tag"/></param>
-        /// <param name="ct"></param>
+        /// <param name="ct"> Cancellation token</param>
         public Task<Tag> WriteAsync(Tag tag, CancellationToken ct = default)
         {
             var task = this.WriteAsync(tag.Address, tag.Value, ct);
@@ -769,12 +823,14 @@ namespace OPCUaClient
 
 
         /// <summary>
-        /// Read a tag of the sepecific address
+        /// Read a tag of the specific address
         /// </summary>
         /// <param name="address">
         /// Address of the tag
         /// </param>
-        /// <param name="ct"></param>F
+        /// <param name="ct">
+        /// Cancellation token
+        /// </param>
         /// <returns>
         /// <see cref="Tag"/>
         /// </returns>
@@ -808,7 +864,9 @@ namespace OPCUaClient
         /// <param name="address">
         /// Address to read.
         /// </param>
-        /// <param name="ct"></param>
+        /// <param name="ct">
+        ///  Cancellation token
+        /// </param>
         /// <typeparam name="TValue">
         /// Type of value to read.
         /// </typeparam>
@@ -831,7 +889,9 @@ namespace OPCUaClient
         /// <param name="address">
         /// List of address to read.
         /// </param>
-        /// <param name="ct"></param>
+        /// <param name="ct">
+        ///  Cancellation token
+        /// </param>
         /// <returns>
         /// A list of tags <see cref="Tag"/>
         /// </returns>

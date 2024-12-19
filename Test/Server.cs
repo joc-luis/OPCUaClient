@@ -20,10 +20,10 @@ namespace Test
             UaClient client = new UaClient("testingConect", "opc.tcp://localhost:52240", true, true);
             client.Connect(30);
             var devices = client.Devices(true);
-            Assert.AreEqual(2, devices.Count);
-            Assert.AreEqual(3, devices[0].Groups.Count);
-            Assert.AreEqual("NexusMeter", devices[0].Name);
-            Assert.AreEqual(1022, devices[0].Tags.Count);
+            Assert.Equals(2, devices.Count);
+            Assert.Equals(3, devices[0].Groups.Count);
+            Assert.Equals("NexusMeter", devices[0].Name);
+            Assert.Equals(1022, devices[0].Tags.Count);
         }
 
         [Test]
@@ -33,7 +33,7 @@ namespace Test
             client.Connect(30);
             var devices = client.Devices();
 
-            Assert.AreEqual(2, devices.Count);
+            Assert.Equals(2, devices.Count);
             client.Disconnect();
         }
 
@@ -44,7 +44,7 @@ namespace Test
             client.Connect(30);
             var groups = client.Groups("NexusMeter", false);
 
-            Assert.AreEqual(3, groups.Count);
+            Assert.Equals(3, groups.Count);
             client.Disconnect();
         }
 
@@ -56,10 +56,10 @@ namespace Test
             client.Connect(30);
 
             var tags = client.Tags("NexusMeter");
-            Assert.AreEqual(1022, tags.Count);
+            Assert.Equals(1022, tags.Count);
 
             tags = client.Tags("NexusMeter.Test");
-            Assert.AreEqual(6, tags.Count);
+            Assert.Equals(6, tags.Count);
             
             client.Disconnect();
         }
@@ -71,37 +71,37 @@ namespace Test
         public async Task DevicesAsync()
         {
             UaClient client = new UaClient("testingConect", "opc.tcp://localhost:52240", true, true);
-            client.Connect(30);
+            await client.ConnectAsync(30);
             var devices =  client.DevicesAsync();
 
-            Assert.AreEqual(2, (await devices).Count);
-            client.Disconnect();
+            Assert.Equals(2, (await devices).Count);
+            await client.DisconnectAsync();
         }
 
         [Test]
         public async Task GroupsAsync()
         {
             UaClient client = new UaClient("testingConect", "opc.tcp://localhost:52240", true, true);
-            client.Connect(30);
+            await client.ConnectAsync(30);
             var groups = await client.GroupsAsync("NexusMeter", false);
 
-            Assert.AreEqual(3, groups.Count);
-            client.Disconnect();
+            Assert.Equals(3, groups.Count);
+            await client.DisconnectAsync();
         }
 
         [Test]
         public async Task TagsAsync()
         {
             UaClient client = new UaClient("testingConect", "opc.tcp://localhost:52240", true, true);
-            client.Connect(30);
-
-            var tags = await client.TagsAsync("NexusMeter");
-            Assert.AreEqual(1022, tags.Count);
-
-            tags = client.Tags("NexusMeter.Test");
-            Assert.AreEqual(6, tags.Count);
+            await client.ConnectAsync(30);
             
-            client.Disconnect();
+            var tags = await client.TagsAsync("NexusMeter.Test");
+            Assert.Equals(6, tags.Count);
+
+            tags = await client.TagsAsync("NexusMeter");
+            Assert.Equals(1044, tags.Count);
+            
+            await client.DisconnectAsync();
         }
     }
 }
