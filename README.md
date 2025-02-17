@@ -1,6 +1,9 @@
 # [OPCUaClient](https://www.nuget.org/packages/OPCUaClient/)
 Client for OPC UA Server
 
+# [OPCUaStandard](https://www.nuget.org/packages/OPCUaStandard)
+A version of the OPC Ua client in .NET Standard
+
 ## Build with
 [OPC UA Foundation](https://github.com/OPCFoundation/UA-.NETStandard) library
 

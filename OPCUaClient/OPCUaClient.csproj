@@ -19,7 +19,7 @@ Add bugs to fix later.</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Company>$(Authors)</Company>
     <Version>1.7.0</Version>
-    <PackageVersion>2.1.0</PackageVersion>
+    <PackageVersion>2.1.1</PackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
